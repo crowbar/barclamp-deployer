@@ -19,6 +19,8 @@ barclamp:
   name: deployer
   display: Deployer
   version: 0
+  member:
+    - crowbar
 
 crowbar:
   layout: 1
