@@ -163,7 +163,24 @@ module BarclampLibrary
         team_mode = c_info["team_mode"] rescue nil
 
         return [interface_list[0], interface_list, nil] if interface_list.size == 1
-        ["bond", interface_list, team_mode]
+
+        node["crowbar"]["bond_list"] = {} if (node["crowbar"].nil? or node["crowbar"]["bond_list"].nil?)
+        bond_list = node["crowbar"]["bond_list"]
+        Chef::Log.fatal("GREG: bond map: #{bond_list.inspect} #{interface_list.inspect}")
+        the_bond = nil
+        bond_list.each do |bond, map|
+          the_bond = bond if map == interface_list
+          break if the_bond
+        end
+
+        if the_bond.nil?
+          the_bond = "bond#{bond_list.size}"
+          bond_list[the_bond] = interface_list
+          node.save
+        end
+
+        Chef::Log.fatal("GREG: returning bond: #{the_bond} #{interface_list.inspect} #{team_mode}")
+        [the_bond, interface_list, team_mode]
       end
 
       class Network
