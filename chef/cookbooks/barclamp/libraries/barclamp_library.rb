@@ -51,7 +51,6 @@ module BarclampLibrary
 
       def self.bus_index(bus_order, path)
         return 999 if bus_order.nil?
-        Chef::Log.fatal("GREG: bus_index: b:#{bus_order} p:#{path}")
 
         dpath = path.split(".")[0].split("/")
 
@@ -76,14 +75,11 @@ module BarclampLibrary
       end
 
       def self.sort_ifs(map, bus_order)
-        Chef::Log.fatal("GREG: pre sort answer = #{map.inspect}")
         answer = map.sort{|a,b|
-          Chef::Log.fatal("GREG: compare a:#{a.inspect} b:#{b.inspect}")
           aindex = Barclamp::Inventory.bus_index(bus_order, a[1])
           bindex = Barclamp::Inventory.bus_index(bus_order, b[1])
           aindex == bindex ? a[0] <=> b[0] : aindex <=> bindex
         }
-        Chef::Log.fatal("GREG: post sort answer = #{answer.inspect}")
         answer.map! { |x| x[0] }
       end
 
@@ -93,7 +89,6 @@ module BarclampLibrary
           bus_order = data["bus_order"] if node[:dmi][:system][:product_name] =~ /#{data["pattern"]}/
           break if bus_order
         end rescue nil
-        Chef::Log.fatal("GREG: bus_order is: #{bus_order} for #{node[:dmi][:system][:product_name]}")
         bus_order
       end
 
@@ -112,7 +107,6 @@ module BarclampLibrary
           end
           the_one = false unless found
 
-          Chef::Log.fatal("GREG: full data conduits: #{data.inspect}") if the_one
           conduits = data["conduit_list"] if the_one
           break if conduits
         end rescue nil
@@ -125,12 +119,9 @@ module BarclampLibrary
 
         return {} if conduits.nil?
 
-        Chef::Log.fatal("GREG: using conduits: #{conduits.inspect}")
-
         if_list = node["crowbar"]["detected"]["network"]
 
         sorted_ifs = Barclamp::Inventory.sort_ifs(if_list, bus_order)
-        Chef::Log.fatal("GREG: sorted_ifs = #{sorted_ifs.inspect}")
         if_remap = {}
         count = 1
         sorted_ifs.each do |intf|
@@ -138,18 +129,21 @@ module BarclampLibrary
           count = count + 1
         end
 
-        Chef::Log.fatal("GREG: if_remap = #{if_remap.inspect}")
         ans = {}
         conduits.each do |k,v|
-          Chef::Log.fatal("GREG: doctoring = #{v.inspect} for #{k}")
-          hash = Hash.new(v)
-          hash["if_list"] = v["if_list"].map do |y|
-            if_remap[y]
+          hash = {}
+          v.each do |mk, mv|
+            if mk == "if_list"
+              hash["if_list"] = v["if_list"].map do |y|
+                if_remap[y]
+              end
+            else
+              hash[mk] = mv
+            end
           end
           ans[k] = hash
         end
 
-        Chef::Log.fatal("GREG: return from build_node_map: #{ans.inspect}")
         ans
       end
 
@@ -166,7 +160,6 @@ module BarclampLibrary
 
         node["crowbar"]["bond_list"] = {} if (node["crowbar"].nil? or node["crowbar"]["bond_list"].nil?)
         bond_list = node["crowbar"]["bond_list"]
-        Chef::Log.fatal("GREG: bond map: #{bond_list.inspect} #{interface_list.inspect}")
         the_bond = nil
         bond_list.each do |bond, map|
           the_bond = bond if map == interface_list
@@ -179,7 +172,6 @@ module BarclampLibrary
           node.save
         end
 
-        Chef::Log.fatal("GREG: returning bond: #{the_bond} #{interface_list.inspect} #{team_mode}")
         [the_bond, interface_list, team_mode]
       end
 
