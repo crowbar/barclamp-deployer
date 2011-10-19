@@ -169,7 +169,8 @@ module BarclampLibrary
         if the_bond.nil?
           the_bond = "bond#{bond_list.size}"
           bond_list[the_bond] = interface_list
-          node.save
+          # The rescue nil handles the case where we are looking up a node that isn't us
+          node.save rescue nil  
         end
 
         [the_bond, interface_list, team_mode]
