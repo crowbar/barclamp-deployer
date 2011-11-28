@@ -13,11 +13,12 @@
 # limitations under the License.
 #
 
-provisioner = search(:node, "roles:provisioner-server")
-provisioner = provisioner[0] if provisioner
+provisioners = search(:node, "roles:provisioner-server")
+provisioner = provisioners[0] if provisioners
 os_token="#{node[:platform]}-#{node[:platform_version]}"
 
-if provisioner
+states = [ "ready", "readying", "problem", "applying" ]
+if provisioner and states.include?(node[:state])
   web_port = provisioner["provisioner"]["web_port"]
   address = provisioner["ipaddress"]
   on_admin = node["crowbar"] and node["crowbar"]["admin_node"]
