@@ -65,14 +65,8 @@ if provisioner and states.include?(node[:state])
     end
   end
 
-
-  bash "fixup rubygems repo" do
-    code <<__EOC__
-gem source -c
-gem source list |grep -q "#{address}" || gem source -a "http://#{address}:3001/"
-gem source list |grep -q rubygems.org && gem source -r "http://rubygems.org/"
-__EOC__
-    only_if "gem source list |grep -q rubygems.org"
+  template "/etc/gemrc" do
+    variables(:admin_ip => address, :web_port => 3001)
   end
 
 end
