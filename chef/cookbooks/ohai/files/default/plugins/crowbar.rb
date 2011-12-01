@@ -39,42 +39,24 @@ filename = "/usr/sbin/lshw"
 if !File.exists?(filename)
   filename = "/usr/bin/lshw"
 end
-f = IO.popen("#{filename} -quiet -class network | egrep 'logical|bus info|-network|serial'")
 networks = []
 mac_map = {}
 bus_found=false
 logical_name=""
 mac_addr=""
 wait=false
-f.each { |line|
-  if line =~ /\*-network/
-    if bus_found
-      networks << logical_name
-      mac_map[logical_name] = mac_addr 
-      if !File.exists?("/tmp/tcpdump.#{logical_name}.out") 
-        System.background_time_command(45, true, logical_name, "ifconfig #{logical_name} up ; /opt/tcpdump/tcpdump -c 1 -lv -v -i #{logical_name} -a -e -s 1514 ether proto 0x88cc > /tmp/tcpdump.#{logical_name}.out")
-        wait=true
-      end
+Dir.foreach("/sys/class/net") do |entry|
+  if entry =~ /.*eth/
+    logical_name = entry
+    networks << logical_name
+    f = File.open("/sys/class/net/#{entry}/address", "r")
+    mac_addr = f.gets()
+    mac_map[logical_name] = mac_addr
+    f.close
+    if !File.exists?("/tmp/tcpdump.#{logical_name}.out")
+      System.background_time_command(45, true, logical_name, "ifconfig #{logical_name} up ; /opt/tcpdump/tcpdump -c 1 -lv -v -i #{logical_name} -a -e -s 1514 ether proto 0x88cc > /tmp/tcpdump.#{logical_name}.out")
+      wait=true
     end
-    bus_found=false
-  end
-  if line =~ /bus info:/
-    bus_found = true
-  end
-  if line =~ /logical name: (.*)/
-    logical_name = $1
-  end
-  if line =~ /serial: (.*)/
-    mac_addr = $1
-  end
-}
-f.close
-if bus_found
-  networks << logical_name
-  mac_map[logical_name] = mac_addr 
-  if !File.exists?("/tmp/tcpdump.#{logical_name}.out") 
-    System.background_time_command(45, true, logical_name, "ifconfig #{logical_name} up ; /opt/tcpdump/tcpdump -c 1 -lv -v -i #{logical_name} -a -e -s 1514 ether proto 0x88cc > /tmp/tcpdump.#{logical_name}.out")
-    wait=true
   end
 end
 system("sleep 45") if wait
@@ -123,6 +105,7 @@ f.each { |line|
   path = arr[0]
 
   next unless networks.include?(network)
+  next if network == "network"
 
   crowbar[:detected] = Mash.new unless crowbar[:detected]
   crowbar[:detected][:network] = Mash.new unless crowbar[:detected][:network]
