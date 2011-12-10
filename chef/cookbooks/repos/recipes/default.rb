@@ -20,7 +20,7 @@ os_token="#{node[:platform]}-#{node[:platform_version]}"
 states = [ "ready", "readying", "problem", "applying" ]
 if provisioner and states.include?(node[:state])
   web_port = provisioner["provisioner"]["web_port"]
-  address = provisioner["ipaddress"]
+  address = Chef::Recipe::Barclamp::Inventory.get_network_by_type(provisioner, "admin").address
   on_admin = node["crowbar"] and node["crowbar"]["admin_node"]
 
   case node["platform"]
