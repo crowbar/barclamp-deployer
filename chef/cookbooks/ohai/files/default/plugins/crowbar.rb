@@ -15,7 +15,7 @@
 
 require 'timeout'
 
-provides "crowbar"
+provides "crowbar_ohai"
 
 class System
   def self.background_time_command(timeout, background, name, command)
@@ -79,8 +79,8 @@ if bus_found
 end
 system("sleep 45") if wait
 
-crowbar Mash.new
-crowbar[:switch_config] = Mash.new unless crowbar[:switch_config]
+crowbar_ohai Mash.new
+crowbar_ohai[:switch_config] = Mash.new unless crowbar_ohai[:switch_config]
 
 networks.each do |network|
   sw_port = -1
@@ -108,12 +108,12 @@ networks.each do |network|
     sw_name = $1
   end
 
-  crowbar[:switch_config][network] = Mash.new unless crowbar[:switch_config][network]
-  crowbar[:switch_config][network][:interface] = network
-  crowbar[:switch_config][network][:mac] = mac_map[network].downcase
-  crowbar[:switch_config][network][:switch_name] = sw_name
-  crowbar[:switch_config][network][:switch_port] = sw_port
-  crowbar[:switch_config][network][:switch_unit] = sw_unit
+  crowbar_ohai[:switch_config][network] = Mash.new unless crowbar_ohai[:switch_config][network]
+  crowbar_ohai[:switch_config][network][:interface] = network
+  crowbar_ohai[:switch_config][network][:mac] = mac_map[network].downcase
+  crowbar_ohai[:switch_config][network][:switch_name] = sw_name
+  crowbar_ohai[:switch_config][network][:switch_port] = sw_port
+  crowbar_ohai[:switch_config][network][:switch_unit] = sw_unit
 end
 
 f = IO.popen("#{filename} -quiet -short | egrep 'network'")
@@ -124,9 +124,9 @@ f.each { |line|
 
   next unless networks.include?(network)
 
-  crowbar[:detected] = Mash.new unless crowbar[:detected]
-  crowbar[:detected][:network] = Mash.new unless crowbar[:detected][:network]
-  crowbar[:detected][:network][network] = path
+  crowbar_ohai[:detected] = Mash.new unless crowbar_ohai[:detected]
+  crowbar_ohai[:detected][:network] = Mash.new unless crowbar_ohai[:detected][:network]
+  crowbar_ohai[:detected][:network][network] = path
 }
 f.close
 
