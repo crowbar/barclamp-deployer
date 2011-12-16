@@ -66,7 +66,7 @@ if provisioner and states.include?(node[:state])
   end
 
   template "/etc/gemrc" do
-    variables(:admin_ip => address, :web_port => 3001)
+    variables(:admin_ip => address, :web_port => web_port)
   end
 
 end
