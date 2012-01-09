@@ -37,6 +37,3 @@ locale_additions:
         edit_deployment: 
           deployment: Deployment
 
-debs:
-  pkgs:
-    - lshw
