@@ -40,3 +40,23 @@ locale_additions:
 debs:
   pkgs:
     - lshw
+  build_pkgs:
+    - build-essential
+    - make
+    - flex
+    - bison
+
+rpms:
+  build_pkgs:
+    - flex
+    - bison
+    - make
+    - kernel-devel
+    - gcc
+    - glibc-devel
+
+extra_files:
+  - http://www.tcpdump.org/release/libpcap-1.2.1.tar.gz
+  - http://www.tcpdump.org/release/tcpdump-4.2.1.tar.gz
+
+build_cmd: build_tcpdump.sh

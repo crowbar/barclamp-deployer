@@ -36,24 +36,6 @@ d = directory "/opt/tcpdump" do
 end
 d.run_action(:create)
 
-f = cookbook_file "/opt/tcpdump/libpcap-1.1.1.tar.gz" do
-  source "libpcap-1.1.1.tar.gz"
-  owner 'root'
-  group 'root'
-  mode 0644
-  action :nothing
-end
-f.run_action(:create)
-
-f = cookbook_file "/opt/tcpdump/tcpdump-4.1.1.tar.gz" do
-  source "tcpdump-4.1.1.tar.gz"
-  owner 'root'
-  group 'root'
-  mode 0644
-  action :nothing
-end
-f.run_action(:create)
-
 f = cookbook_file "/opt/tcpdump/tcpdump" do
   source "tcpdump"
   owner 'root'
