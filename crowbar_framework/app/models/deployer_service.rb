@@ -92,6 +92,7 @@ class DeployerService < ServiceObject
         next if disk.start_with?("loop")
         next if disk.start_with?("dm")
         next if disk.start_with?("ndb")
+        next if disk.start_with?("nbd")
         next if disk.start_with?("md")
         next if disk.start_with?("sg")
         next if disk.start_with?("fd")

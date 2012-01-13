@@ -38,8 +38,6 @@ locale_additions:
           deployment: Deployment
 
 debs:
-  pkgs:
-    - lshw
   build_pkgs:
     - build-essential
     - make
