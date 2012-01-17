@@ -45,6 +45,9 @@ debs:
     - bison
 
 rpms:
+  redhat-6.2:
+    build_pkgs:
+      - tar
   build_pkgs:
     - flex
     - bison
