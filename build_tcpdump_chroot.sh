@@ -22,4 +22,4 @@ for s in ${SOURCES[@]}; do
     cd ..
 done
 [[ -x $tcpdump/tcpdump ]] || exit 1
-cp "$tcpdump/tcpdump" /tmp
+cp "$tcpdump/tcpdump" /mnt/files

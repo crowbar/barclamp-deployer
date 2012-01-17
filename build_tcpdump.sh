@@ -1,6 +1,6 @@
 #!/bin/bash
 bc_needs_build() {
-    [[ ! -x $BC_DIR/chef/cookbooks/ohai/files/default/tcpdump ]]
+    [[ ! -x $BC_CACHE/files/tcpdump ]]
 }
 
 bc_build() {
@@ -14,5 +14,4 @@ bc_build() {
 	in_chroot yum -y install glibc-static
     fi
     in_chroot /tmp/build_tcpdump_chroot.sh
-    cp "$CHROOT/tmp/tcpdump" "$BC_DIR/chef/cookbooks/ohai/files/default/"
 }
