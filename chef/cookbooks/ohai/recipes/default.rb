@@ -29,11 +29,18 @@ d = directory "/opt/tcpdump" do
 end
 d.run_action(:create)
 
-f = bash "create /opt/tcpdump/tcpdump" do
-  code "cp /updates/tcpdump /opt/tcpdump/tcpdump"
-  action :nothing
+unless ::File.exists?("/opt/tcpdump/tcpdump")
+  provisioners = search(:node, "roles:provisioner-server")
+  provisioner = provisioners[0] if provisioners
+  web_port = provisioner["provisioner"]["web_port"]
+  address = Chef::Recipe::Barclamp::Inventory.get_network_by_type(provisioner, "admin").address
+  f = remote_file "/opt/tcpdump/tcpdump" do
+    source "http://#{address}:#{web_port}/files/tcpdump"
+    mode "0755"
+    action :nothing
+  end
+  f.run_action(:create)
 end
-f.run_action(:run) unless ::File.exists?("/opt/tcpdump/tcpdump")
 
 d = directory node.ohai.plugin_path do
   owner 'root'
