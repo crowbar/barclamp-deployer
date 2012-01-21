@@ -17,51 +17,50 @@ provisioners = search(:node, "roles:provisioner-server")
 provisioner = provisioners[0] if provisioners
 os_token="#{node[:platform]}-#{node[:platform_version]}"
 
-states = [ "ready", "readying", "problem", "applying" ]
+states = [ "ready", "readying", "recovering", "applying" ]
 if provisioner and states.include?(node[:state])
   web_port = provisioner["provisioner"]["web_port"]
+  repositories = provisioner["provisioner"]["repositories"][os_token]
   address = Chef::Recipe::Barclamp::Inventory.get_network_by_type(provisioner, "admin").address
-  on_admin = node["crowbar"] and node["crowbar"]["admin_node"]
 
   case node["platform"]
   when "ubuntu","debian"
-    bash "update apt sources" do
-      code "apt-get update"
-      action :nothing
-    end
-    
     cookbook_file "/etc/apt/apt.conf.d/99-crowbar-no-auth" do
       source "apt.conf"
     end
     
     file "/etc/apt/sources.list" do
       action :delete
-    end unless on_admin
-    
-    template "/etc/apt/sources.list.d/00-base.list" do
-      variables(:admin_ip => address, :web_port => web_port)
-      notifies :run, resources("bash[update apt sources]"), :immediately
     end
-    template "/etc/apt/sources.list.d/10-crowbar-extra.list" do
-      variables(:os_token => os_token, :admin_ip => address, :web_port => web_port)
-      notifies :run, resources("bash[update apt sources]"), :immediately
+    repositories.each do |repo,url|
+      case repo
+      when "base"
+        template "/etc/apt/sources.list.d/00-base.list" do
+          variables(:url => url)
+        end
+      else
+        template "/etc/apt/sources.list.d/10-barclamp-#{repo}.list" do
+          source "10-crowbar-extra.list.erb"
+          variables(:url => url)
+        end
+      end
+    end
+    bash "update apt sources" do
+      code "apt-get update"
+      action :nothing
     end
     package "rubygems"
   when "redhat","centos"
+    repositories.each do |repo,url|
+      template "/etc/yum.repos.d/crowbar-#{repo}.repo" do
+        source "crowbar-xtras.repo.erb"
+        variables(:repo => repo, :url => url)
+      end
+    end
+       
     bash "update yum sources" do
       code "yum clean expire-cache"
       action :nothing
-    end
-
-    template "/etc/yum.repos.d/#{os_token}-Base.repo" do
-      variables(:admin_ip => address, :web_port => web_port, :os_token => os_token)
-      source "yum-base.repo.erb"
-      notifies :run, resources("bash[update yum sources]"), :immediately
-    end
-
-    template "/etc/yum.repos.d/crowbar-xtras.repo" do
-      variables(:admin_ip => address, :web_port => web_port, :os_token => os_token)
-      notifies :run, resources("bash[update yum sources]"), :immediately
     end
   end
 

@@ -1,4 +1,4 @@
-[crowbar-xtras]
-name=Crowbar Extra Packages
-baseurl=http://<%= @admin_ip %>:<%= @web_port %>/<%= @os_token %>/crowbar-extra
+[crowbar-<%= @repo %>]
+name=Crowbar <%= @repo %> Packages
+baseurl=<%= @url %>
 gpgcheck=0
