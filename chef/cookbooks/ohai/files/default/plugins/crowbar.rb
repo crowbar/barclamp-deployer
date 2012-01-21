@@ -45,7 +45,9 @@ logical_name=""
 mac_addr=""
 wait=false
 Dir.foreach("/sys/class/net") do |entry|
-  if entry =~ /.*eth/
+  next if entry =~ /\./
+  type = File::open("/sys/class/net/#{entry}/type").readline.strip rescue "0"
+  if type == "1"
     s1 = File.readlink("/sys/class/net/#{entry}") rescue ""
     spath = File.readlink("/sys/class/net/#{entry}/device") rescue "Unknown"
     spath = s1 if s1 =~ /pci/
