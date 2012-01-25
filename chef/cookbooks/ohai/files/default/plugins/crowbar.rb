@@ -61,7 +61,7 @@ Dir.foreach("/sys/class/net") do |entry|
     networks << logical_name
     f = File.open("/sys/class/net/#{entry}/address", "r")
     mac_addr = f.gets()
-    mac_map[logical_name] = mac_addr
+    mac_map[logical_name] = mac_addr.strip
     f.close
     if !File.exists?("/tmp/tcpdump.#{logical_name}.out")
       System.background_time_command(45, true, logical_name, "ifconfig #{logical_name} up ; /opt/tcpdump/tcpdump -c 1 -lv -v -i #{logical_name} -a -e -s 1514 ether proto 0x88cc > /tmp/tcpdump.#{logical_name}.out")
