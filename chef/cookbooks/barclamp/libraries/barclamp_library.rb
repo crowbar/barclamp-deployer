@@ -98,7 +98,7 @@ module BarclampLibrary
           parts = data["pattern"].split("/")
           the_one = true
           the_one = false unless node["network"]["mode"] =~ /#{parts[0]}/
-          the_one = false unless node["crowbar_ohai"]["detected"]["network"].size.to_s =~ /#{parts[1]}/
+          the_one = false unless node.automatic_attrs["crowbar_ohai"]["detected"]["network"].size.to_s =~ /#{parts[1]}/
 
           found = false
           node.roles.each do |role|
@@ -119,7 +119,7 @@ module BarclampLibrary
 
         return {} if conduits.nil?
 
-        if_list = node["crowbar_ohai"]["detected"]["network"]
+        if_list = node.automatic_attrs["crowbar_ohai"]["detected"]["network"]
 
         sorted_ifs = Barclamp::Inventory.sort_ifs(if_list, bus_order)
         if_remap = {}
