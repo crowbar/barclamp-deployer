@@ -207,10 +207,8 @@ class DeployerService < ServiceObject
       node.crowbar["crowbar"]["pending"].each do |k,v|
         roles << v
       end unless node.crowbar["crowbar"]["pending"].nil?
+      roles << node.run_list_to_roles
       roles.flatten!
-      node.crowbar_run_list.run_list_items.each do |item|
-        roles << item.name
-      end
 
       # Walk map to categorize the node.  Choose first one from the bios map that matches.
       role = RoleObject.find_role_by_name "deployer-config-#{inst}"
@@ -230,43 +228,6 @@ class DeployerService < ServiceObject
       
       os_map = role.default_attributes["deployer"]["os_map"]
       node.crowbar["crowbar"]["hardware"]["os"] = os_map[0]["install_os"] 
-      save_it = true
-    end
-
-    #
-    # The node is about to go into update.
-    # We should make sure that we save and setup the run-list for updating.
-    #
-    if state == "update" or state == "hardware-installing"
-      save_list = node.crowbar["crowbar"]["save_run_list"] || []
-      seen_bios = false
-      node.crowbar_run_list.run_list_items.each do |item|
-        if seen_bios and !(item.name =~ /^ipmi-|^raid-|^bios/)
-          save_list << item.name
-        else
-          seen_bios = true if item.name =~ /^ipmi-|^raid-|^bios/
-        end
-      end
-
-      save_list.each do |item|
-        node.crowbar_run_list.run_list_items.delete "role[#{item}]"
-      end
-
-      node.crowbar["crowbar"]["save_run_list"] = save_list
-      save_it = true
-    end
-
-    #
-    # Put the run-list back.
-    #
-    if state == "hardware-updated" or state == "hardware-installed"
-      unless node.crowbar["crowbar"]["save_run_list"].nil?
-        node.crowbar["crowbar"]["save_run_list"].each do |name|
-          node.crowbar_run_list.run_list_items << "role[#{name}]"
-        end
-      end
-
-      node.crowbar["crowbar"]["save_run_list"] = []
       save_it = true
     end
 

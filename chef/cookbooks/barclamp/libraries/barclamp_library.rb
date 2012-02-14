@@ -18,7 +18,7 @@ module BarclampLibrary
     class Inventory
       def self.list_networks(node)
         answer = []
-        intf_to_if_map = Barclamp::Inventory.build_node_map
+        intf_to_if_map = Barclamp::Inventory.build_node_map(node)
         node[:crowbar][:network].each do |net, data|
           intf, interface_list, tm = Barclamp::Inventory.lookup_interface_info(node, data["conduit"], intf_to_if_map)
           answer << Network.new(net, data, intf, interface_list)
