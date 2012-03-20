@@ -3,7 +3,7 @@ SOURCES=(libpcap-1.2.1.tar.gz tcpdump-4.2.1.tar.gz)
 
 cd /tmp
 for s in ${SOURCES[@]}; do
-    cp /mnt/files/"$s" .
+    cp ${BC_CACHE}/files/"$s" .
     tar xzf "$s"
     cd "${s%.tar.gz}"
     case $s in
