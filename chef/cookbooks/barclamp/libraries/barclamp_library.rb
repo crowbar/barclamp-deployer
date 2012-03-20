@@ -37,7 +37,7 @@ module BarclampLibrary
           intf, interface_list, tm = Barclamp::Inventory.lookup_interface_info(node, data["conduit"])
           return Network.new(net, data, intf, interface_list)
         end unless node[:crowbar][:network].nil?
-        Network.new(type, { "address" => node[:ipaddress] })
+        nil
       end
 
       def self.list_disks(node)
