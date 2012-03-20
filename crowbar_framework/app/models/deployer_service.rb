@@ -163,7 +163,8 @@ class DeployerService < ServiceObject
       @logger.debug("Deployer transition: Done Allocate admin address for #{name}")
 
       @logger.debug("Deployer transition: Allocate bmc address for #{name}")
-      result = ns.allocate_ip("default", "bmc", "host", name)
+      suggestion = node["crowbar_wall"]["ipmi"]["address"] rescue nil
+      result = ns.allocate_ip("default", "bmc", "host", name, suggestion)
       @logger.error("Failed to allocate bmc address for: #{node.name}: #{result[0]}") if result[0] != 200
       @logger.debug("Deployer transition: Done Allocate bmc address for #{name}")
 
