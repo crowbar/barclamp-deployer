@@ -43,6 +43,8 @@ debs:
     - make
     - flex
     - bison
+  pkgs:
+    - tcpdump
 
 rpms:
   redhat-6.2:
@@ -58,6 +60,8 @@ rpms:
     - kernel-devel
     - gcc
     - glibc-devel
+  pkgs:
+    - tcpdump
 
 #extra_files:
 #  - http://www.tcpdump.org/release/libpcap-1.2.1.tar.gz
