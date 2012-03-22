@@ -20,8 +20,6 @@
 Ohai::Config[:plugin_path] << node.ohai.plugin_path
 Chef::Log.info("ohai plugins will be at: #{node.ohai.plugin_path}")
 
-package "tcpdump"
-
 d = directory node.ohai.plugin_path do
   owner 'root'
   group 'root'
