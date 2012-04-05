@@ -20,28 +20,6 @@
 Ohai::Config[:plugin_path] << node.ohai.plugin_path
 Chef::Log.info("ohai plugins will be at: #{node.ohai.plugin_path}")
 
-d = directory "/opt/tcpdump" do
-  owner 'root'
-  group 'root'
-  mode 0755
-  recursive true
-  action :nothing
-end
-d.run_action(:create)
-
-unless ::File.exists?("/opt/tcpdump/tcpdump")
-  provisioners = search(:node, "roles:provisioner-server")
-  provisioner = provisioners[0] if provisioners
-  web_port = provisioner["provisioner"]["web_port"]
-  address = Chef::Recipe::Barclamp::Inventory.get_network_by_type(provisioner, "admin").address
-  f = remote_file "/opt/tcpdump/tcpdump" do
-    source "http://#{address}:#{web_port}/files/tcpdump"
-    mode "0755"
-    action :nothing
-  end
-  f.run_action(:create)
-end
-
 d = directory node.ohai.plugin_path do
   owner 'root'
   group 'root'
