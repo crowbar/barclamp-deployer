@@ -46,7 +46,7 @@ if provisioner and states.include?(node[:state])
         template "/etc/apt/sources.list.d/10-barclamp-#{repo}.list" do
           source "10-crowbar-extra.list.erb"
           variables(:url => url)
-          notifies :run, "file[/tmp/.repo_update]", :immediately
+          notifies :create, "file[/tmp/.repo_update]", :immediately
         end
       end
     end
@@ -65,7 +65,7 @@ if provisioner and states.include?(node[:state])
       template "/etc/yum.repos.d/crowbar-#{repo}.repo" do
         source "crowbar-xtras.repo.erb"
         variables(:repo => repo, :url => url)
-        notifies :run, "file[/tmp/.repo_update]", :immediately
+        notifies :create, "file[/tmp/.repo_update]", :immediately
       end
     end
      bash "update software sources" do
