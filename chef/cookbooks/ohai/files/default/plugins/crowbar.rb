@@ -46,7 +46,8 @@ mac_addr=""
 wait=false
 Dir.foreach("/sys/class/net") do |entry|
   next if entry =~ /\./
-  next if entry =~ /br/
+  # We only care about actual physical devices.
+  next unless File.exists? "/sys/class/net/#{entry}/device"
   type = File::open("/sys/class/net/#{entry}/type").readline.strip rescue "0"
   if type == "1"
     s1 = File.readlink("/sys/class/net/#{entry}") rescue ""
