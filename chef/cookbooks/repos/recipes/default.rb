@@ -17,6 +17,10 @@ provisioners = search(:node, "roles:provisioner-server")
 provisioner = provisioners[0] if provisioners
 os_token="#{node[:platform]}-#{node[:platform_version]}"
 
+file "/tmp/.repo_update" do
+  action :nothing
+end
+
 states = [ "ready", "readying", "recovering", "applying" ]
 if provisioner and states.include?(node[:state])
   web_port = provisioner["provisioner"]["web_port"]
@@ -28,7 +32,6 @@ if provisioner and states.include?(node[:state])
     cookbook_file "/etc/apt/apt.conf.d/99-crowbar-no-auth" do
       source "apt.conf"
     end
-    
     file "/etc/apt/sources.list" do
       action :delete
     end
@@ -37,36 +40,41 @@ if provisioner and states.include?(node[:state])
       when "base"
         template "/etc/apt/sources.list.d/00-base.list" do
           variables(:url => url)
+          notifies :create, "file[/tmp/.repo_update]", :immediately
         end
       else
         template "/etc/apt/sources.list.d/10-barclamp-#{repo}.list" do
           source "10-crowbar-extra.list.erb"
           variables(:url => url)
+          notifies :create, "file[/tmp/.repo_update]", :immediately
         end
       end
     end
-    bash "update apt sources" do
+    bash "update software sources" do
       code "apt-get update"
-      action :nothing
+      notifies :delete, "file[/tmp/.repo_update]", :immediately
+      only_if { ::File.exists? "/tmp/.repo_update" }
     end
     package "rubygems"
   when "redhat","centos"
+    bash "update software sources" do
+      code "yum clean expire-cache"
+      action :nothing
+    end
     repositories.each do |repo,url|
       template "/etc/yum.repos.d/crowbar-#{repo}.repo" do
         source "crowbar-xtras.repo.erb"
         variables(:repo => repo, :url => url)
+        notifies :create, "file[/tmp/.repo_update]", :immediately
       end
     end
-       
-    bash "update yum sources" do
+     bash "update software sources" do
       code "yum clean expire-cache"
-      action :nothing
+      notifies :delete, "file[/tmp/.repo_update]", :immediately
+      only_if { ::File.exists? "/tmp/.repo_update" }
     end
   end
-
   template "/etc/gemrc" do
     variables(:admin_ip => address, :web_port => web_port)
   end
-
 end
-
