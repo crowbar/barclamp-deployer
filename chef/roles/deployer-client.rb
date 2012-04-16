@@ -3,9 +3,10 @@ name "deployer-client"
 description "Deployer Client role - Discovery components"
 run_list(
          "recipe[barclamp]",
+         "recipe[prereq]",
          "recipe[repos]",
          "recipe[ohai]",
-         "recipe[kernel-panic]"
+         "recipe[kernel-panic]" 
 )
 default_attributes()
 override_attributes()
