@@ -82,6 +82,9 @@ networks.each do |network|
   if line =~ /: Unit [\d]+ Port ([\d]+)/
     sw_port = $1
   end
+  if line =~ /: ([\S]+ [\d]+\/[\d]+)/
+    sw_port = $1
+  end
 
   sw_unit = -1
   line = %x[cat /tmp/tcpdump.#{network}.out | grep "Subtype Interface Name"]
