@@ -44,12 +44,18 @@ class DeployerService < ServiceObject
 
       db = ProposalObject.find_proposal("deployer", inst)
       role = RoleObject.find_role_by_name "deployer-config-#{inst}"
-
-      result = add_role_to_instance_and_node("deployer", inst, name, db, role, "deployer-client")
-
-      @logger.debug("Deployer transition: leaving #{name} for #{state}: discovering mode: #{result}")
-      return [200, NodeObject.find_node_by_name(name).to_hash ] if result
-      return [404, "Failed to add role to node"] unless result
+      if node.admin?
+        roles = %w(deployer-client bmc-nat-router)
+      else
+        roles = %w(deployer-client bmc-nat-client)
+      end
+      roles.each do |r|
+        next if add_role_to_instance_and_node("deployer", inst, name, db, role, r)
+        @logger.debug("Deployer transition: leaving #{name} for #{state}: discovering failed.")
+        return [404, "Failed to add role to node"]
+      end
+      @logger.debug("Deployer transition: leaving #{name} for #{state}: discovering passed.")
+      return [200, NodeObject.find_node_by_name(name).to_hash ]
     end
 
     #
