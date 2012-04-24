@@ -17,7 +17,4 @@ bc_build() {
     gem build wsman.gemspec
 
     cp "$BC_DIR"/updates/wsman/wsman*.gem "$BC_CACHE/gems"
-	cp "$BC_DIR"/updates/xml-simple*.gem "$BC_CACHE/gems"
-	cp "$BC_DIR"/updates/libxml-ruby*.gem "$BC_CACHE/gems"
-	
 }
