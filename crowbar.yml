@@ -63,6 +63,12 @@ rpms:
     - glibc-devel
   pkgs:
     - tcpdump
+	
+	
+gems:
+  pkgs:
+    - xml-simple
+    - libxml-ruby
 
 build_cmd: build.sh
 
