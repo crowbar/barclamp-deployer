@@ -74,7 +74,4 @@ if provisioner and states.include?(node[:state])
       only_if { ::File.exists? "/tmp/.repo_update" }
     end
   end
-  template "/etc/gemrc" do
-    variables(:admin_ip => address, :web_port => web_port)
-  end
 end
