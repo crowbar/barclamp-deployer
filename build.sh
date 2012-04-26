@@ -8,6 +8,9 @@ echo "Using: BC_CACHE = $BC_CACHE"
 echo "Using: CROWBAR_DIR = $CROWBAR_DIR"
 echo "Using: BC_DIR = $BC_DIR"
 
+bc_needs_build() {
+    true
+}
 
 bc_build() {
     mkdir -p "$BC_CACHE/files/wsman"
