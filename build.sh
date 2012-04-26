@@ -19,5 +19,5 @@ bc_build() {
     cd "$BC_DIR/updates/wsman"
     gem build wsman.gemspec
 
-    cp "$BC_DIR"/updates/wsman/wsman*.gem "$BC_CACHE/gems"
+    mv "$BC_DIR"/updates/wsman/wsman*.gem "$BC_CACHE/gems"
 }
