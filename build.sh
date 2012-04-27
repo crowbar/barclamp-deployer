@@ -8,6 +8,9 @@ echo "Using: BC_CACHE = $BC_CACHE"
 echo "Using: CROWBAR_DIR = $CROWBAR_DIR"
 echo "Using: BC_DIR = $BC_DIR"
 
+bc_needs_build() {
+    true
+}
 
 bc_build() {
     mkdir -p "$BC_CACHE/files/wsman"
@@ -16,5 +19,5 @@ bc_build() {
     cd "$BC_DIR/updates/wsman"
     gem build wsman.gemspec
 
-    cp "$BC_DIR"/updates/wsman/wsman*.gem "$BC_CACHE/gems"
+    mv "$BC_DIR"/updates/wsman/wsman*.gem "$BC_CACHE/gems"
 }
