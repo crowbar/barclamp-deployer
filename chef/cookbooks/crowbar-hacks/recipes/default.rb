@@ -19,10 +19,9 @@
 states = [ "ready", "readying", "recovering", "applying" ]
 if states.include?(node[:state])
   # Don't waste time with mlocate or updatedb
-  file "/etc/cron.daily/mlocate" do
-    action :delete
-  end
-  file "/etc/cron.daily/updatedb" do
-    action :delete
+  %w{mlocate mlocate.cron updatedb}.each do |f|
+    file "/etc/cron.daily/#{f}" do
+      action :delete
+    end
   end
 end
