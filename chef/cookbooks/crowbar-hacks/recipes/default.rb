@@ -24,4 +24,30 @@ if states.include?(node[:state])
       action :delete
     end
   end
+
+  # Set up some basic log rotation
+  template "/etc/logrotate.d/crowbar-webserver" do
+    source "logrotate.erb"
+    owner "root"
+    group "root"
+    mode "0644"
+    variables(:logfiles => "/opt/dell/crowbar_framework/log/*.log",
+                :action => "create 644 crowbar crowbar",
+              :postrotate => "/usr/bin/killall -USR1 rainbows")
+  end if node[:recipes].include?("crowbar")
+  template "/etc/logrotate.d/node-logs" do
+    source "logrotate.erb"
+    owner "root"
+    group "root"
+    mode "0644"
+    variables(:logfiles => "/var/log/nodes/*.log"
+              :postrotate => "/usr/bin/killall -HUP rsyslogd")
+  end if node[:recipes].include?("logging::server")
+  template "/etc/logrotate.d/client-join-logs" do
+    source "logrotate.erb"
+    owner "root"
+    group "root"
+    mode "0644"
+    variables(:logfiles => ["/var/log/crowbar-*.log","/var/log/crowbar-*.err"])
+  end unless node[:recipes].include?("crowbar")
 end
