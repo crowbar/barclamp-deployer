@@ -4,6 +4,7 @@ description "Deployer Client role - Discovery components"
 run_list(
          "recipe[barclamp]",
          "recipe[repos]",
+         "recipe[crowbar-hacks]",
          "recipe[ohai]",
          "recipe[kernel-panic]" 
 )
