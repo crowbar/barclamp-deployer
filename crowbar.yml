@@ -69,6 +69,7 @@ gems:
   pkgs:
     - xml-simple
     - libxml-ruby
+    - cstruct
 
 build_cmd: build.sh
 
