@@ -43,6 +43,7 @@ SIOCETHTOOL = 0x8946
 
 # From: "/usr/include/linux/ethtool.h"
 ETHTOOL_GSET = 1
+ETHTOOL_GLINK = 10
 
 # From: "/usr/include/linux/ethtool.h"
 class EthtoolCmd < CStruct
@@ -89,6 +90,11 @@ end
 #define SUPPORTED_10000baseKR_Full  (1 << 19)
 #define SUPPORTED_10000baseR_FEC    (1 << 20)
 
+class EthtoolValue < CStruct
+  uint32 :cmd
+  uint32 :value
+end
+
 def get_supported_speeds(interface)
   ecmd = EthtoolCmd.new
   ecmd.cmd = ETHTOOL_GSET
@@ -106,6 +112,24 @@ def get_supported_speeds(interface)
   speeds << "1g" if (rv.supported & ((1<<5)|(1<<5)))
   speeds << "10g" if (rv.supported & ((0xf<<17)|(1<<12)))
   speeds
+end
+
+#
+# true for up
+# false for down
+# 
+def get_link_status(interface)
+  ecmd = EthtoolValue.new
+  ecmd.cmd = ETHTOOL_GLINK
+
+  ifreq = [interface, ecmd.data].pack("a16p")
+  sock = Socket.new(Socket::AF_INET, Socket::SOCK_DGRAM, 0)
+  sock.ioctl(SIOCETHTOOL, ifreq)
+
+  rv = ecmd.class.new
+  rv.data = ifreq.unpack("a16p")[1]
+
+  rv.value != 0
 end
 
 crowbar_ohai Mash.new
@@ -187,6 +211,7 @@ networks.each do |network|
   crowbar_ohai[:switch_config][network] = Mash.new unless crowbar_ohai[:switch_config][network]
   crowbar_ohai[:switch_config][network][:interface] = network
   crowbar_ohai[:switch_config][network][:mac] = mac_map[network].downcase
+  crowbar_ohai[:switch_config][network][:port_link] = get_link_status(network)
   crowbar_ohai[:switch_config][network][:switch_name] = sw_name
   crowbar_ohai[:switch_config][network][:switch_port] = sw_port
   crowbar_ohai[:switch_config][network][:switch_port_name] = sw_port_name
