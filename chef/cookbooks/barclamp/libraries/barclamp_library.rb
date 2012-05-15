@@ -76,8 +76,8 @@ module BarclampLibrary
 
       def self.sort_ifs(map, bus_order)
         answer = map.sort{|a,b|
-          aindex = Barclamp::Inventory.bus_index(bus_order, a[1])
-          bindex = Barclamp::Inventory.bus_index(bus_order, b[1])
+          aindex = Barclamp::Inventory.bus_index(bus_order, a[1]["path"])
+          bindex = Barclamp::Inventory.bus_index(bus_order, b[1]["path"])
           aindex == bindex ? a[0] <=> b[0] : aindex <=> bindex
         }
         answer.map! { |x| x[0] }
@@ -123,10 +123,14 @@ module BarclampLibrary
 
         sorted_ifs = Barclamp::Inventory.sort_ifs(if_list, bus_order)
         if_remap = {}
-        count = 1
+        count_map = {}
         sorted_ifs.each do |intf|
-          if_remap["1g#{count}"] = intf
-          count = count + 1
+          speeds = if_list[intf]["speeds"]
+          speeds.each do |speed|
+            count = count_map[speed] || 1
+            if_remap["#{speed}#{count}"] = intf
+            count_map[speed] = count + 1
+          end
         end
 
         ans = {}
