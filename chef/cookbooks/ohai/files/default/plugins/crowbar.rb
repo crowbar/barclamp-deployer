@@ -109,7 +109,7 @@ def get_supported_speeds(interface)
   speeds = []
   speeds << "10m" if (rv.supported & ((1<<0)|(1<<1)))
   speeds << "100m" if (rv.supported & ((1<<2)|(1<<3)))
-  speeds << "1g" if (rv.supported & ((1<<5)|(1<<5)))
+  speeds << "1g" if (rv.supported & ((1<<4)|(1<<5)))
   speeds << "10g" if (rv.supported & ((0xf<<17)|(1<<12)))
   speeds
 end
