@@ -1,4 +1,6 @@
 [crowbar-<%= @repo %>]
 name=Crowbar <%= @repo %> Packages
-<%= @url %>
+<% @urls.keys.sort.each do |url| -%>
+<%= url %>
+<% end -%>
 gpgcheck=0

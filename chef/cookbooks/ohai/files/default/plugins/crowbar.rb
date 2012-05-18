@@ -107,10 +107,10 @@ def get_supported_speeds(interface)
   rv.data = ifreq.unpack("a16p")[1]
 
   speeds = []
-  speeds << "10m" if (rv.supported & ((1<<0)|(1<<1)))
-  speeds << "100m" if (rv.supported & ((1<<2)|(1<<3)))
-  speeds << "1g" if (rv.supported & ((1<<4)|(1<<5)))
-  speeds << "10g" if (rv.supported & ((0xf<<17)|(1<<12)))
+  speeds << "10m" if (rv.supported & ((1<<0)|(1<<1))) != 0
+  speeds << "100m" if (rv.supported & ((1<<2)|(1<<3))) != 0
+  speeds << "1g" if (rv.supported & ((1<<4)|(1<<5))) != 0
+  speeds << "10g" if (rv.supported & ((0xf<<17)|(1<<12))) != 0
   speeds
 end
 
