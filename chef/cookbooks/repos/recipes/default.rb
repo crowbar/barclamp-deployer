@@ -35,17 +35,17 @@ if provisioner and states.include?(node[:state])
     file "/etc/apt/sources.list" do
       action :delete
     end
-    repositories.each do |repo,url|
+    repositories.each do |repo,urls|
       case repo
       when "base"
         template "/etc/apt/sources.list.d/00-base.list" do
-          variables(:url => url)
+          variables(:urls => urls)
           notifies :create, "file[/tmp/.repo_update]", :immediately
         end
       else
         template "/etc/apt/sources.list.d/10-barclamp-#{repo}.list" do
           source "10-crowbar-extra.list.erb"
-          variables(:url => url)
+          variables(:urls => urls)
           notifies :create, "file[/tmp/.repo_update]", :immediately
         end
       end
@@ -61,10 +61,10 @@ if provisioner and states.include?(node[:state])
       code "yum clean expire-cache"
       action :nothing
     end
-    repositories.each do |repo,url|
+    repositories.each do |repo,urls|
       template "/etc/yum.repos.d/crowbar-#{repo}.repo" do
         source "crowbar-xtras.repo.erb"
-        variables(:repo => repo, :url => url)
+        variables(:repo => repo, :urls => urls)
         notifies :create, "file[/tmp/.repo_update]", :immediately
       end
     end
