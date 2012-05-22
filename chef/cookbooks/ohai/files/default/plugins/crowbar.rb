@@ -106,6 +106,16 @@ def get_supported_speeds(interface)
   rv = ecmd.class.new
   rv.data = ifreq.unpack("a16p")[1]
 
+  puts "GREG: rv.data = #{rv.data.inspect}"
+  puts "GREG: rv.supported = #{rv.supported}"
+  puts "GREG: 10m T = #{(1<<0)|(1<<1)}"
+  puts "GREG: 100m T = #{(1<<2)|(1<<3)}"
+  puts "GREG: 1g T = #{(1<<4)|(1<<5)}"
+  puts "GREG: 10g T = #{(0xf<<17)|(1<<12)}"
+  puts "GREG: 10m V = #{rv.supported & ((1<<0)|(1<<1))}"
+  puts "GREG: 100m V = #{rv.supported & ((1<<2)|(1<<3))}"
+  puts "GREG: 1g V = #{rv.supported & ((1<<4)|(1<<5))}"
+  puts "GREG: 10g V = #{rv.supported & ((0xf<<17)|(1<<12))}"
   speeds = []
   speeds << "10m" if (rv.supported & ((1<<0)|(1<<1)))
   speeds << "100m" if (rv.supported & ((1<<2)|(1<<3)))
