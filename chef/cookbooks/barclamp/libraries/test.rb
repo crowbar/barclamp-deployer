@@ -56,5 +56,17 @@ if $0 == __FILE__
       if_map=build_if_map %w{10m 100m 10g}
       assert_equal "10g", b.map_if_ref(if_map,"?1g1")
     end
+
+    def test_non_listed_items_with_one_valid
+      b = BarclampLibrary::Barclamp::Inventory
+      if_map=build_if_map %w{10m 100m 10g 0g 5k fred}
+      assert_equal "10g", b.map_if_ref(if_map,"?1g1")
+    end
+
+    def test_non_listed_items_with_no_valid
+      b = BarclampLibrary::Barclamp::Inventory
+      if_map=build_if_map %w{0g 5k fred}
+      assert_equal nil, b.map_if_ref(if_map,"?1g1")
+    end
   end
 end
