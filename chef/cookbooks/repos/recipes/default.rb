@@ -25,7 +25,6 @@ states = [ "ready", "readying", "recovering", "applying" ]
 if provisioner and states.include?(node[:state])
   web_port = provisioner["provisioner"]["web_port"]
   repositories = provisioner["provisioner"]["repositories"][os_token]
-  address = Chef::Recipe::Barclamp::Inventory.get_network_by_type(provisioner, "admin").address
 
   case node["platform"]
   when "ubuntu","debian"
@@ -75,6 +74,6 @@ if provisioner and states.include?(node[:state])
     end
   end
   template "/etc/gemrc" do
-    variables(:admin_ip => address, :web_port => web_port)
+    variables(:admin_ip => provisioner.address.addr, :web_port => web_port)
   end
 end
