@@ -7,7 +7,7 @@ class Chef
     end
     def address(net="admin",type=::IP)
       self.addresses(net,type).first ||
-        (::IP.coerce("#{self[:network][net][:address]}/#{self[:network][net][:netmask]}") rescue nil) ||
+        (::IP.coerce("#{self[:crowbar][:network][net][:address]}/#{self[:crowbar][:network][net][:netmask]}") rescue nil) ||
         ::IP.coerce(self[:ipaddress])
     end
     def interfaces(net="admin")
