@@ -110,8 +110,9 @@ class DeployerService < ServiceObject
   
         node.crowbar["crowbar"]["disks"][disk] = data
 
-        node.crowbar["crowbar"]["disks"][disk]["usage"] = "OS" if disk == "sda"
-        node.crowbar["crowbar"]["disks"][disk]["usage"] = "Storage" unless disk == "sda"
+        # "vda" is presumably unlikely on bare metal, but may be there if testing under KVM
+        node.crowbar["crowbar"]["disks"][disk]["usage"] = "OS" if disk == "sda" || disk == "vda"
+        node.crowbar["crowbar"]["disks"][disk]["usage"] = "Storage" unless disk == "sda" || disk == "vda"
 
         save_it = true
       end 
