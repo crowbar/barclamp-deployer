@@ -34,7 +34,7 @@ if provisioner and states.include?(node[:state])
     end
     file "/etc/apt/sources.list" do
       action :delete
-    end
+    end unless online
     template "/etc/apt/apt.conf.d/00-proxy" do
       source "apt-proxy.erb"
       variables(:node => provisioner)
