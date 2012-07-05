@@ -24,6 +24,7 @@ end
 states = [ "ready", "readying", "recovering", "applying" ]
 if provisioner and states.include?(node[:state])
   web_port = provisioner["provisioner"]["web_port"]
+  online = provisioner["provisioner"]["online"]
   repositories = provisioner["provisioner"]["repositories"][os_token]
 
   case node["platform"]
@@ -49,6 +50,24 @@ if provisioner and states.include?(node[:state])
         end
       end
     end
+    if online
+      online_repos = {}
+      data_bag("barclamps").each do |bc_name|
+        bc = data_bag_item("barclamps",bc_name)
+        next unless bc["debs"]
+        bc["debs"]["repos"].each { |repo|
+          online_repos[repo] = true
+        } if bc["debs"]["repos"]
+        bc["debs"][os_token]["repos"].each { |repo|
+          online_repos[repo] = true
+        } if (bc["debs"][os_token]["repos"] rescue nil)
+      end
+      template "/etc/apt/sources.list.d/20-online.list" do
+        source "10-crowbar-extra.list.erb"
+        variables(:urls => online_repos)
+        notifies :create, "file[/tmp/.repo_update]", :immediately
+      end unless online_repos.empty?
+    end
     bash "update software sources" do
       code "apt-get update"
       notifies :delete, "file[/tmp/.repo_update]", :immediately
@@ -67,7 +86,50 @@ if provisioner and states.include?(node[:state])
         notifies :create, "file[/tmp/.repo_update]", :immediately
       end
     end
-     bash "update software sources" do
+    if online
+      online_repos = {}
+      data_bag("barclamps").each do |barclamp_name|
+        barclamp = data_bag_item('barclamps',barclamp_name)
+        next unless barclamp["rpms"]
+        barclamp["rpms"]["repos"].each {|repo|
+          online_repos[repo] = true
+        } if barclamp["rpms"]["repos"]
+        barclamp["rpms"][os_token]["repos"].each {|repo|
+          online_repos[repo] = true
+        } if (barclamp["rpms"][os_token]["repos"] rescue nil)
+      end
+      unless online_repos.empty?
+        rpm_repos, bare_repos = online_repos.keys.partition{ |r|
+          r =~ /^rpm /
+        }
+        bare_repos.each do |repo|
+          _, name, _, url = repo.split
+          url = "baseurl=#{url}" if url =~ /^http/
+          template "/etc/yum.repos.d/online-#{name}.repo" do
+            source "crowbar-xtras.repo.erb"
+            variables(:repo => name, :urls => {url => true})
+            notifies :create, "file[/tmp/.repo_update]", :immediately
+          end
+        end
+        rpm_repos.each do |repo|
+          url = repo.split(' ',2)[1]
+          file = url.split('/').last
+          file = file << ".rpm" unless file =~ /\.rpm$/
+          remote_file "/var/cache/#{file}" do
+            source url
+            action :create_if_missing
+            notifies :install, "package[install yum repo #{file}]", :immediately
+          end
+          package "install yum repo #{file}" do
+            provider Chef::Provider::Package::Rpm
+            source "/var/cache/#{file}"
+            notifies :create, "file[/tmp/.repo_update]", :immediately
+            action :nothing
+          end
+        end
+      end
+    end
+    bash "update software sources" do
       code "yum clean expire-cache"
       notifies :delete, "file[/tmp/.repo_update]", :immediately
       only_if { ::File.exists? "/tmp/.repo_update" }
