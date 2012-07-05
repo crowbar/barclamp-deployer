@@ -35,6 +35,10 @@ if provisioner and states.include?(node[:state])
     file "/etc/apt/sources.list" do
       action :delete
     end
+    template "/etc/apt/apt.conf.d/00-proxy" do
+      source "apt-proxy.erb"
+      variables(:node => provisioner)
+    end
     repositories.each do |repo,urls|
       case repo
       when "base"
@@ -78,6 +82,10 @@ if provisioner and states.include?(node[:state])
     bash "update software sources" do
       code "yum clean expire-cache"
       action :nothing
+    end
+    bash "add yum proxy" do
+      code "echo http_proxy=http://#{provisioner.address.addr}:#{provisioner["provisioner"]["local_proxy_port"]} >> /etc/yum.conf"
+      not_if "grep -q http_proxy /etc/yum.conf"
     end
     repositories.each do |repo,urls|
       template "/etc/yum.repos.d/crowbar-#{repo}.repo" do
@@ -136,6 +144,6 @@ if provisioner and states.include?(node[:state])
     end
   end
   template "/etc/gemrc" do
-    variables(:admin_ip => provisioner.address.addr, :web_port => web_port)
+    variables(:node => provisioner)
   end
 end
