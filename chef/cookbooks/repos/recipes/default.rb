@@ -66,7 +66,7 @@ if provisioner and states.include?(node[:state])
           online_repos[repo] = true
         } if (bc["debs"][os_token]["repos"] rescue nil)
       end
-      template "/etc/apt/sources.list.d/20-online.list" do
+      template "/etc/apt/sources.list.d/20-crowbar-online.list" do
         source "10-crowbar-extra.list.erb"
         variables(:urls => online_repos)
         notifies :create, "file[/tmp/.repo_update]", :immediately
@@ -113,7 +113,7 @@ if provisioner and states.include?(node[:state])
         bare_repos.each do |repo|
           _, name, _, url = repo.split
           url = "baseurl=#{url}" if url =~ /^http/
-          template "/etc/yum.repos.d/online-#{name}.repo" do
+          template "/etc/yum.repos.d/crowbar-online-#{name}.repo" do
             source "crowbar-xtras.repo.erb"
             variables(:repo => name, :urls => {url => true})
             notifies :create, "file[/tmp/.repo_update]", :immediately
