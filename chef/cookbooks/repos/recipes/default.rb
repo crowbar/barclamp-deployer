@@ -21,7 +21,6 @@ file "/tmp/.repo_update" do
   action :nothing
 end
 
-states = [ "ready", "readying", "recovering", "applying" ]
 if provisioner and states.include?(node[:state])
   web_port = provisioner["provisioner"]["web_port"]
   online = provisioner["provisioner"]["online"]
@@ -40,9 +39,15 @@ if provisioner and states.include?(node[:state])
       variables(:node => provisioner)
     end
     repositories.each do |repo,urls|
-      case repo
-      when "base"
+      case 
+      when repo == "base"
         template "/etc/apt/sources.list.d/00-base.list" do
+          variables(:urls => urls)
+          notifies :create, "file[/tmp/.repo_update]", :immediately
+        end
+      when repo =~ /.*_online/
+        template "/etc/apt/sources.list.d/20-barclamp-#{repo}.list" do
+          source "10-crowbar-extra.list.erb"
           variables(:urls => urls)
           notifies :create, "file[/tmp/.repo_update]", :immediately
         end
@@ -53,24 +58,6 @@ if provisioner and states.include?(node[:state])
           notifies :create, "file[/tmp/.repo_update]", :immediately
         end
       end
-    end
-    if online
-      online_repos = {}
-      data_bag("barclamps").each do |bc_name|
-        bc = data_bag_item("barclamps",bc_name)
-        next unless bc["debs"]
-        bc["debs"]["repos"].each { |repo|
-          online_repos[repo] = true
-        } if bc["debs"]["repos"]
-        bc["debs"][os_token]["repos"].each { |repo|
-          online_repos[repo] = true
-        } if (bc["debs"][os_token]["repos"] rescue nil)
-      end
-      template "/etc/apt/sources.list.d/20-crowbar-online.list" do
-        source "10-crowbar-extra.list.erb"
-        variables(:urls => online_repos)
-        notifies :create, "file[/tmp/.repo_update]", :immediately
-      end unless online_repos.empty?
     end
     bash "update software sources" do
       code "apt-get update"
@@ -88,32 +75,13 @@ if provisioner and states.include?(node[:state])
       not_if "grep -q http_proxy /etc/yum.conf"
     end
     repositories.each do |repo,urls|
-      template "/etc/yum.repos.d/crowbar-#{repo}.repo" do
-        source "crowbar-xtras.repo.erb"
-        variables(:repo => repo, :urls => urls)
-        notifies :create, "file[/tmp/.repo_update]", :immediately
-      end
-    end
-    if online
-      online_repos = {}
-      data_bag("barclamps").each do |barclamp_name|
-        barclamp = data_bag_item('barclamps',barclamp_name)
-        next unless barclamp["rpms"]
-        barclamp["rpms"]["repos"].each {|repo|
-          online_repos[repo] = true
-        } if barclamp["rpms"]["repos"]
-        barclamp["rpms"][os_token]["repos"].each {|repo|
-          online_repos[repo] = true
-        } if (barclamp["rpms"][os_token]["repos"] rescue nil)
-      end
-      unless online_repos.empty?
-        rpm_repos, bare_repos = online_repos.keys.partition{ |r|
-          r =~ /^rpm /
-        }
-        bare_repos.each do |repo|
-          _, name, _, url = repo.split
+      case
+      when repo =~ /.*_online/
+        rpm_sources, bare_sources = urls.keys.partition{|r|r =~ /^rpm /}
+        bare_sources.each do |source|
+          _, name, _, url = source.split
           url = "baseurl=#{url}" if url =~ /^http/
-          template "/etc/yum.repos.d/crowbar-online-#{name}.repo" do
+          template "/etc/yum.repos.d/crowbar-#{repo}-#{name}.repo" do
             source "crowbar-xtras.repo.erb"
             variables(:repo => name, :urls => {url => true})
             notifies :create, "file[/tmp/.repo_update]", :immediately
@@ -123,17 +91,21 @@ if provisioner and states.include?(node[:state])
           url = repo.split(' ',2)[1]
           file = url.split('/').last
           file = file << ".rpm" unless file =~ /\.rpm$/
-          remote_file "/var/cache/#{file}" do
-            source url
-            action :create_if_missing
-            notifies :install, "package[install yum repo #{file}]", :immediately
-          end
-          package "install yum repo #{file}" do
-            provider Chef::Provider::Package::Rpm
-            source "/var/cache/#{file}"
+          bash "fetch /var/cache/#{file}" do
+            not_if "test -f '/var/cache/#{file}'"
+            code <<EOC
+export http_proxy=http://#{provisioner.address.addr}:8123
+curl -o '/var/cache/#{file}' -L '#{url}'
+rpm -Uvh '/var/cache/#{file}'
+EOC
             notifies :create, "file[/tmp/.repo_update]", :immediately
-            action :nothing
           end
+        end
+      else
+        template "/etc/yum.repos.d/crowbar-#{repo}.repo" do
+          source "crowbar-xtras.repo.erb"
+          variables(:repo => repo, :urls => urls)
+          notifies :create, "file[/tmp/.repo_update]", :immediately
         end
       end
     end
@@ -147,3 +119,5 @@ if provisioner and states.include?(node[:state])
     variables(:node => provisioner)
   end
 end
+
+  
