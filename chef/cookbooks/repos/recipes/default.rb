@@ -21,7 +21,7 @@ file "/tmp/.repo_update" do
   action :nothing
 end
 
-if provisioner and states.include?(node[:state])
+if provisioner
   web_port = provisioner["provisioner"]["web_port"]
   online = provisioner["provisioner"]["online"]
   repositories = provisioner["provisioner"]["repositories"][os_token]
@@ -87,7 +87,7 @@ if provisioner and states.include?(node[:state])
             notifies :create, "file[/tmp/.repo_update]", :immediately
           end
         end
-        rpm_repos.each do |repo|
+        rpm_sources.each do |repo|
           url = repo.split(' ',2)[1]
           file = url.split('/').last
           file = file << ".rpm" unless file =~ /\.rpm$/
