@@ -40,7 +40,7 @@ if provisioner
       variables(:proxy => proxy)
     end
     repositories.each do |repo,urls|
-      case 
+      case
       when repo == "base"
         template "/etc/apt/sources.list.d/00-base.list" do
           variables(:urls => urls)
@@ -59,7 +59,7 @@ if provisioner
           notifies :create, "file[/tmp/.repo_update]", :immediately
         end
       end
-    end
+    end if repositories
     bash "update software sources" do
       code "apt-get update"
       notifies :delete, "file[/tmp/.repo_update]", :immediately
@@ -109,7 +109,7 @@ EOC
           notifies :create, "file[/tmp/.repo_update]", :immediately
         end
       end
-    end
+    end if repositories
     bash "update software sources" do
       code "yum clean expire-cache"
       notifies :delete, "file[/tmp/.repo_update]", :immediately
@@ -124,4 +124,3 @@ EOC
   end
 end
 
-  
