@@ -1,5 +1,5 @@
-<% unless @node["provisioner"]["online"] -%>
+<% unless @online -%>
 sources:
 - http://<%=@admin_ip%>:<%=@web_port%>/gemsite/
 <% end -%>
-gem: --no-ri --no-rdoc --bindir /usr/local/bin --http-proxy http://<%=@node.address.addr%>:<%=@node["provisioner"]["local_proxy_port"]%>
+gem: --no-ri --no-rdoc --bindir /usr/local/bin --http-proxy <%=@proxy%>

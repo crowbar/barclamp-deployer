@@ -23,7 +23,8 @@ end
 
 if provisioner
   web_port = provisioner["provisioner"]["web_port"]
-  online = provisioner["provisioner"]["online"]
+  proxy = "http://#{provisioner.address.addr}:8123/"
+  online = provisioner["provisioner"]["online"] rescue nil
   repositories = provisioner["provisioner"]["repositories"][os_token]
 
   case node["platform"]
@@ -36,7 +37,7 @@ if provisioner
     end unless online
     template "/etc/apt/apt.conf.d/00-proxy" do
       source "apt-proxy.erb"
-      variables(:node => provisioner)
+      variables(:proxy => proxy)
     end
     repositories.each do |repo,urls|
       case 
@@ -48,7 +49,7 @@ if provisioner
       when repo =~ /.*_online/
         template "/etc/apt/sources.list.d/20-barclamp-#{repo}.list" do
           source "10-crowbar-extra.list.erb"
-          variables(:urls => urls)
+           variables(:urls => urls)
           notifies :create, "file[/tmp/.repo_update]", :immediately
         end
       else
@@ -71,8 +72,8 @@ if provisioner
       action :nothing
     end
     bash "add yum proxy" do
-      code "echo http_proxy=http://#{provisioner.address.addr}:#{provisioner["provisioner"]["local_proxy_port"]} >> /etc/yum.conf"
-      not_if "grep -q http_proxy /etc/yum.conf"
+      code "echo proxy=#{proxy} >> /etc/yum.conf"
+      not_if "grep -q '^proxy=http' /etc/yum.conf"
     end
     repositories.each do |repo,urls|
       case
@@ -116,7 +117,10 @@ EOC
     end
   end
   template "/etc/gemrc" do
-    variables(:node => provisioner)
+    variables(:online => online,
+              :admin_ip => provisioner.address.addr,
+              :web_port => web_port,
+              :proxy => proxy)
   end
 end
 
