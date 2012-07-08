@@ -75,6 +75,15 @@ if provisioner
       code "echo proxy=#{proxy} >> /etc/yum.conf"
       not_if "grep -q '^proxy=http' /etc/yum.conf"
     end
+    bash "Disable fastestmirror plugin" do
+      code "sed -i '/^enabled/ s/1/0/' /etc/yum/pluginconf.d/fastestmirror.conf"
+      only_if "test -f /etc/yum/pluginconf.d/fastestmirror.conf"
+    end
+    bash "Reenable main repos" do
+      code "yum -y reinstall centos-release"
+      not_if "test -f /etc/yum.repos.d/CentOS-Base.repo"
+      notifies :create, "file[/tmp/.repo_update]", :immediately
+    end if online && (node[:platform] == "centos")
     repositories.each do |repo,urls|
       case
       when repo =~ /.*_online/
