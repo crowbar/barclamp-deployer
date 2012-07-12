@@ -376,12 +376,12 @@ class ::Nic
   def self.new(nic)
     if o = @@interfaces[nic]
       return o
-    elsif bond?(nic)
-      o = ::Nic::Bond.allocate
-    elsif bridge?(nic)
-      o = ::Nic::Bridge.allocate
     elsif vlan?(nic)
       o = ::Nic::Vlan.allocate
+    elsif bridge?(nic)
+      o = ::Nic::Bridge.allocate
+    elsif bond?(nic)
+      o = ::Nic::Bond.allocate
     elsif exists?(nic)
       o = ::Nic.allocate
     else

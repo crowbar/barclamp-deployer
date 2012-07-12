@@ -1,5 +1,10 @@
 class Chef
   class Node
+    def all_addresses(type=::IP)
+      (self[:crowbar_wall][:network][:addrs].values || [] rescue []).map{|a|
+        ::IP.coerce(a)
+      }.select{|a|a.kind_of? type}
+    end
     def addresses(net="admin",type=::IP)
       (self[:crowbar_wall][:network][:addrs][net] || [] rescue []).map{|a|
         ::IP.coerce(a)

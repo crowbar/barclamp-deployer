@@ -1,3 +1,5 @@
+<% unless @online -%>
 sources:
 - http://<%=@admin_ip%>:<%=@web_port%>/gemsite/
-gem: --no-ri --no-rdoc --bindir /usr/local/bin
+<% end -%>
+gem: --no-ri --no-rdoc --bindir /usr/local/bin --http-proxy <%=@proxy%>
