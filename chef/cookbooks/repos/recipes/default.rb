@@ -21,7 +21,7 @@ file "/tmp/.repo_update" do
   action :nothing
 end
 
-if provisioner && (provisioner["provisioner"]["repositories"][os_token] rescue nil)
+if provisioner and (provisioner[:provisioner][:repositories][os_token] || nil rescue nil)
   web_port = provisioner["provisioner"]["web_port"]
   proxy = "http://#{provisioner.address.addr}:8123/"
   online = provisioner["provisioner"]["online"] rescue nil
