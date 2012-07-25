@@ -58,23 +58,6 @@ class DeployerService < ServiceObject
       return [200, NodeObject.find_node_by_name(name).to_hash ]
     end
 
-    #
-    # The temp booting images need to have clients cleared.
-    #
-    if ["delete","discovered","hardware-installed","hardware-updated",
-        "hardware-installing","hardware-updating","reset","reinstall",
-        "update","installing","installed"].member?(state) and !node.admin?
-      @logger.debug("Deployer transition: should be deleting a client entry for #{node.name}")
-      client = ClientObject.find_client_by_name node.name
-      @logger.debug("Deployer transition: found and trying to delete a client entry for #{node.name}") unless client.nil?
-      client.destroy unless client.nil?
-
-      # Make sure that the node can be accessed by knife ssh or ssh
-      if ["reset","reinstall","update","delete"].member?(state)
-        system("sudo rm /root/.ssh/known_hosts")
-      end
-    end
-
     # if delete - clear out stuff
     if state == "delete"
       # Do more work here - one day.
@@ -132,6 +115,10 @@ class DeployerService < ServiceObject
         tname = tname.gsub!("h", "d")
         new_name = "#{tname}.#{ChefObject.cloud_domain}"
         if new_name != node.name
+          @logger.debug("Deployer transition: looking for client entry for #{node.name}")
+          client = ClientObject.find_client_by_name node.name
+          @logger.debug("Deployer transition: deleting client entry for #{node.name}") unless client.nil?
+          client.destroy unless client.nil?
           @logger.debug("Deployer transition: renaming node for #{name} #{node.name} -> #{new_name}")
           node.destroy
 
