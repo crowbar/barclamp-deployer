@@ -55,7 +55,9 @@ if provisioner and states.include?(node[:state])
       notifies :delete, "file[/tmp/.repo_update]", :immediately
       only_if { ::File.exists? "/tmp/.repo_update" }
     end
-    package "rubygems"
+    package "rubygems" do
+      action :upgrade
+    end
   when "redhat","centos"
     bash "update software sources" do
       code "yum clean expire-cache"
