@@ -14,8 +14,12 @@
 # 
 
 class DeployerController < BarclampController
-  def initialize
-    @service_object = DeployerService.new logger
+  before_filter :set_service_object
+ 
+  def set_service_object
+      @service_object = DeployerService.new logger
   end
+
+  private :set_service_object
 end
 
