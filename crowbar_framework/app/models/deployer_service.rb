@@ -223,6 +223,13 @@ class DeployerService < ServiceObject
       end
     end
     if state == "installing"
+      # build a list of current and pending roles to check against
+      roles = []
+      node.crowbar["crowbar"]["pending"].each do |k,v|
+        roles << v
+      end unless node.crowbar["crowbar"]["pending"].nil?
+      roles << node.run_list_to_roles
+      roles.flatten!
       done = false
       role = RoleObject.find_role_by_name "deployer-config-#{inst}"
       role.default_attributes["deployer"]["os_map"].each do |match|
