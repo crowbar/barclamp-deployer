@@ -206,7 +206,7 @@ class DeployerService < ServiceObject
       end unless node.crowbar["crowbar"]["pending"].nil?
       roles << node.run_list_to_roles
       roles.flatten!
-     
+      done = false
       # Walk map to categorize the node.  Choose first one from the bios map that matches.
       role = RoleObject.find_role_by_name "deployer-config-#{inst}"
       role.default_attributes["deployer"]["bios_map"].each do |match|
@@ -224,6 +224,7 @@ class DeployerService < ServiceObject
     end
     if state == "installing"
       done = false
+      role = RoleObject.find_role_by_name "deployer-config-#{inst}"
       role.default_attributes["deployer"]["os_map"].each do |match|
         roles.each do |r|
           next unless r =~ /#{match["pattern"]}/
