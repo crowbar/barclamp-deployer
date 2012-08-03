@@ -206,26 +206,34 @@ class DeployerService < ServiceObject
       end unless node.crowbar["crowbar"]["pending"].nil?
       roles << node.run_list_to_roles
       roles.flatten!
-
+     
       # Walk map to categorize the node.  Choose first one from the bios map that matches.
       role = RoleObject.find_role_by_name "deployer-config-#{inst}"
-      done = false
       role.default_attributes["deployer"]["bios_map"].each do |match|
         roles.each do |r|
-          if r =~ /#{match["pattern"]}/
-            node.crowbar["crowbar"]["hardware"] = {} if node.crowbar["crowbar"]["hardware"].nil? 
-            node.crowbar["crowbar"]["hardware"]["bios_set"] = match["bios_set"] if node.crowbar["crowbar"]["hardware"]["bios_set"].nil?
-            node.crowbar["crowbar"]["hardware"]["raid_set"] = match["raid_set"] if node.crowbar["crowbar"]["hardware"]["raid_set"].nil?
-            done = true
-            break
-          end
+          next unless r =~ /#{match["pattern"]}/
+          node.crowbar["crowbar"]["hardware"] ||= {}
+          node.crowbar["crowbar"]["hardware"]["bios_set"] ||= match["bios_set"]
+          node.crowbar["crowbar"]["hardware"]["raid_set"] ||= match["raid_set"]
+          done = true
+          save_it = true
+          break
         end 
         break if done
       end
-      
-      os_map = role.default_attributes["deployer"]["os_map"]
-      node.crowbar["crowbar"]["hardware"]["os"] = os_map[0]["install_os"] 
-      save_it = true
+    end
+    if state == "installing"
+      done = false
+      role.default_attributes["deployer"]["os_map"].each do |match|
+        roles.each do |r|
+          next unless r =~ /#{match["pattern"]}/
+          node.crowbar["crowbar"]["os"] ||= match["install_os"]
+          done = true
+          save_it = true
+          break
+        end
+        break if done
+      end
     end
 
     node.save if save_it
