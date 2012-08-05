@@ -222,7 +222,7 @@ class DeployerService < ServiceObject
         break if done
       end
     end
-    if state == "installing"
+    if (state == "installing") || (state == "reinstall")
       # build a list of current and pending roles to check against
       roles = []
       node.crowbar["crowbar"]["pending"].each do |k,v|
