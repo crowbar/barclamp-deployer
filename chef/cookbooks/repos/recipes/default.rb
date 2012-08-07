@@ -78,5 +78,6 @@ if provisioner and states.include?(node[:state])
   end
   template "/etc/gemrc" do
     variables(:admin_ip => address, :web_port => web_port)
+    mode "0644"
   end
 end

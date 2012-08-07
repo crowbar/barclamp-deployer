@@ -16,6 +16,7 @@ platform = node[:platform]
 
 t = template "/etc/gemrc" do
     variables(:admin_ip => address, :web_port => web_port, :path => path)
+    mode "0644"
 end
 t.run_action(:create_if_missing)
 
