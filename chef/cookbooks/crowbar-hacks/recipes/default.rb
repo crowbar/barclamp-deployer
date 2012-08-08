@@ -33,7 +33,7 @@ if states.include?(node[:state])
     mode "0644"
     variables(:logfiles => "/opt/dell/crowbar_framework/log/*.log",
                 :action => "create 644 crowbar crowbar",
-              :postrotate => "/usr/bin/killall -USR1 rainbows")
+              :postrotate => "/usr/bin/killall -USR1 puma")
   end if node[:recipes].include?("crowbar")
   template "/etc/logrotate.d/node-logs" do
     source "logrotate.erb"
