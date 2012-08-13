@@ -160,7 +160,7 @@ class DeployerService < ServiceObject
       @logger.debug("Deployer transition: Allocate bmc address for #{name}")
       suggestion = chef_node["crowbar_wall"]["ipmi"]["address"] rescue nil
 
-      suggestion = nil if dep_config and dep_config["ignore_address_suggestions"]
+      suggestion = nil if dep_config and dep_config["deployer"]["ignore_address_suggestions"]
       result = ns.allocate_ip("default", "bmc", "host", name, suggestion)
       @logger.error("Failed to allocate bmc address for: #{node.name}: #{result[0]}") if result[0] != 200
       @logger.debug("Deployer transition: Done Allocate bmc address for #{name}")
@@ -182,7 +182,7 @@ class DeployerService < ServiceObject
 
       # Let it fly to the provisioner. Reload to get the address.
       chash["crowbar"]["usedhcp"] = true
-      if dep_config["use_allocate"] and !node.is_admin?
+      if dep_config["deployer"]["use_allocate"] and !node.is_admin?
         chash["crowbar"]["allocated"] = false
         node.allocated = false
       else
@@ -214,7 +214,7 @@ class DeployerService < ServiceObject
 
       # Walk map to categorize the node.  Choose first one from the bios map that matches.
       done = false
-      dep_config["bios_map"].each do |match|
+      dep_config["deployer"]["bios_map"].each do |match|
         roles.each do |r|
           if r =~ /#{match["pattern"]}/
             chash["crowbar"]["hardware"] = {} if chash["crowbar"]["hardware"].nil? 
@@ -227,7 +227,7 @@ class DeployerService < ServiceObject
         break if done
       end
       
-      os_map = dep_config["os_map"]
+      os_map = dep_config["deployer"]["os_map"]
       chash["crowbar"]["hardware"]["os"] = os_map[0]["install_os"] 
       prop_config.set_node_config_hash(node, chash)
     end
