@@ -18,7 +18,7 @@ class DeployerService < ServiceObject
   def transition(inst, name, state)
     @logger.debug("Deployer transition: entering #{name} for #{state}")
 
-    node = node.find_by_name(name)
+    node = Node.find_by_name(name)
     if node.nil?
       @logger.error("Deployer transition: leaving #{name} for #{state}: Node not found")
       return [404, "Node not found"] # GREG: Translate
