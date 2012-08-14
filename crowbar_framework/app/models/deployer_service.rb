@@ -143,7 +143,7 @@ class DeployerService < ServiceObject
       end
 
       chash["crowbar"]["usage"] = [] if chash["crowbar"]["usage"].nil?
-      if (chash["crowbar"]["disks"].size > 1) and !chash["crowbar"]["usage"].include?("swift")
+      if (chash["crowbar"]["disks"] and chash["crowbar"]["disks"].size > 1) and !chash["crowbar"]["usage"].include?("swift")
         chash["crowbar"]["usage"] << "swift"
       end
 
