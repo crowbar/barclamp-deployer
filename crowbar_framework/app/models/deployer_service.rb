@@ -126,10 +126,10 @@ class DeployerService < ServiceObject
         new_name = "#{tname}.#{ChefObject.cloud_domain}"
         if new_name != node.name
           @logger.debug("Deployer transition: renaming node for #{name} #{node.name} -> #{new_name}")
-          chef_object.destroy
+          chef_node.destroy
 
           # Rename saves the node.
-          chef_object.rename(new_name, ChefObject.cloud_domain)
+          chef_node.rename(new_name, ChefObject.cloud_domain)
           node.name = new_name
           node.save
           name = new_name
