@@ -105,8 +105,8 @@ class DeployerService < ServiceObject
         # "vda" is presumably unlikely on bare metal, but may be there if testing under KVM
         chash["crowbar"]["disks"][disk]["usage"] = "OS" if disk == "sda" || disk == "vda"
         chash["crowbar"]["disks"][disk]["usage"] = "Storage" unless disk == "sda" || disk == "vda"
-        prop_config.set_node_config_hash(node, chash)
       end 
+      prop_config.set_node_config_hash(node, chash)
     end 
 
     # 
