@@ -117,6 +117,7 @@ class DeployerService < ServiceObject
     if state == "discovered"
       @logger.debug("Deployer transition: discovered state for #{name}")
       chash = prop_config.get_node_config_hash(node)
+      chash["crowbar"] = {} if chash["crowbar"].nil?
 
       if !node.is_admin?
         @logger.debug("Deployer transition: check to see if we should rename: #{name}")
@@ -204,6 +205,7 @@ class DeployerService < ServiceObject
     #GREG: THIS SHOULD BE NODE SPECIFIC DATA.
     if state == "hardware-installing"
       chash = prop_config.get_node_config_hash(node)
+      chash["crowbar"] = {} if chash["crowbar"].nil?
 
       # build a list of current and pending roles to check against
       roles = []
