@@ -119,22 +119,8 @@ class DeployerService < ServiceObject
       chash = prop_config.get_node_config_hash(node)
       chash["crowbar"] = {} if chash["crowbar"].nil?
 
-      if !node.is_admin?
-        @logger.debug("Deployer transition: check to see if we should rename: #{name}")
-        tname = node.name.split(".")[0]
-        tname = tname.gsub!("h", "d")
-        new_name = "#{tname}.#{ChefObject.cloud_domain}"
-        if new_name != node.name
-          @logger.debug("Deployer transition: renaming node for #{name} #{node.name} -> #{new_name}")
-          chef_node.destroy
-
-          # Rename saves the node.
-          chef_node.rename(new_name, ChefObject.cloud_domain)
-          node.name = new_name
-          node.save
-          name = new_name
-        end
-      else # We are an admin node - display bios updates for now.
+      if node.is_admin?
+        # We are an admin node - display bios updates for now.
         chash["bios"] ||= {}
         chash["bios"]["bios_setup_enable"] = false
         chash["bios"]["bios_update_enable"] = false
