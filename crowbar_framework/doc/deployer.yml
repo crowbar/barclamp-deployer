@@ -4,7 +4,8 @@ copyright:  2012 by Dell, Inc
 date:       July 25, 2012
 
 crowbar+book-barclamps:
-  deployer+barclamp-info
+  crowbar+barclamp-info-meta:
+    - deployer+barclamp-info
     
 crowbar+book-licenses:
   crowbar+licenses-crowbar-meta:
