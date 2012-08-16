@@ -83,7 +83,9 @@ Dir.foreach("/sys/class/net") do |entry|
   next unless File.exists? "/sys/class/net/#{entry}/device"
   Chef::Log.debug("examining network interface: " + entry)
 
-  type = File::open("/sys/class/net/#{entry}/type").readline.strip rescue "0"
+  type = File::open("/sys/class/net/#{entry}/type") do |f|
+    f.readline.strip
+  end rescue "0"
   Chef::Log.debug("#{entry} is type #{type}")
   next unless type == "1"
 
