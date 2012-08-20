@@ -15,32 +15,8 @@
 
 require 'etc'
 require 'pathname'
-require 'tempfile'
-require 'timeout'
 
 provides "crowbar_ohai"
-
-class System
-  def self.background_time_command(timeout, background, name, command)
-    fd = Tempfile.new("tcpdump-#{name}-")
-    fd.chmod(0700)
-    fd.puts <<-EOF.gsub(/^\s+/, '')
-      #!/bin/bash
-      #{command} &
-      sleep #{timeout}
-      kill %1
-    EOF
-    fd.close
-
-    if background
-      system(fd.path + " &")
-    else
-      system(fd.path)
-    end
-
-    fd.delete
-  end
-end
 
 crowbar_ohai Mash.new
 crowbar_ohai[:switch_config] = Mash.new unless crowbar_ohai[:switch_config]
@@ -111,9 +87,9 @@ Dir.foreach("/sys/class/net") do |entry|
   Chef::Log.debug("tcpdump to: #{tcpdump_out}")
 
   if ! File.exists? tcpdump_out
-    cmd = "ifconfig #{logical_name} up ; tcpdump -c 1 -lv -v -i #{logical_name} -a -e -s 1514 ether proto 0x88cc > #{tcpdump_out}"
+    cmd = "ifconfig #{logical_name} up ; timeout 45 tcpdump -c 1 -lv -v -i #{logical_name} -a -e -s 1514 ether proto 0x88cc > #{tcpdump_out} &"
     Chef::Log.debug("cmd: #{cmd}")
-    System.background_time_command(45, true, logical_name, cmd)
+    system cmd
     wait=true
   end
 end
