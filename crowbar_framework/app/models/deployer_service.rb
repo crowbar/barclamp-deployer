@@ -15,26 +15,15 @@
 
 class DeployerService < ServiceObject
 
-  def initialize(thelogger)
-    @bc_name = "deployer"
-    @logger = thelogger
-  end
-
-  def create_proposal
-    @logger.debug("Deployer create_proposal: entering")
-    base = super
-    @logger.debug("Deployer create_proposal: leaving")
-    base
-  end
-
   def transition(inst, name, state)
     @logger.debug("Deployer transition: entering #{name} for #{state}")
 
-    node = NodeObject.find_node_by_name(name)
+    node = Node.find_by_name(name)
     if node.nil?
       @logger.error("Deployer transition: leaving #{name} for #{state}: Node not found")
-      return [404, "Failed to find node"]
+      return [404, "Node not found"] # GREG: Translate
     end
+    chef_node = node.node_object
 
     # 
     # If we are discovering the node, make sure that we add the deployer client to the node
@@ -42,39 +31,59 @@ class DeployerService < ServiceObject
     if state == "discovering"
       @logger.debug("Deployer transition: leaving #{name} for #{state}: discovering mode")
 
-      db = ProposalObject.find_proposal("deployer", inst)
-      role = RoleObject.find_role_by_name "deployer-config-#{inst}"
-      if node.admin?
+      if node.is_admin?
         roles = %w(deployer-client bmc-nat-router)
       else
         roles = %w(deployer-client bmc-nat-client)
       end
       roles.each do |r|
-        next if add_role_to_instance_and_node("deployer", inst, name, db, role, r)
+        next if add_role_to_instance_and_node(name, inst, r)
         @logger.debug("Deployer transition: leaving #{name} for #{state}: discovering failed.")
-        return [404, "Failed to add role to node"]
+        return [500, "Failed to add role to node"] # GREG: Translate
       end
       @logger.debug("Deployer transition: leaving #{name} for #{state}: discovering passed.")
-      return [200, NodeObject.find_node_by_name(name).to_hash ]
+      return [200, ""]
+    end
+
+    #
+    # The temp booting images need to have clients cleared.
+    #
+    if ["delete","discovered","hardware-installed","hardware-updated",
+        "hardware-installing","hardware-updating","reset","reinstall",
+        "update"].member?(state) and !node.is_admin?
+      @logger.debug("Deployer transition: should be deleting a client entry for #{node.name}")
+      client = ClientObject.find_client_by_name node.name
+      @logger.debug("Deployer transition: found and trying to delete a client entry for #{node.name}") unless client.nil?
+      client.destroy unless client.nil?
+
+      # Make sure that the node can be accessed by knife ssh or ssh
+      if ["reset","reinstall","update","delete"].member?(state)
+        system("sudo rm /root/.ssh/known_hosts")
+      end
     end
 
     # if delete - clear out stuff
     if state == "delete"
       # Do more work here - one day.
-      return [200, node.to_hash ]
+      return [200, ""]
     end
 
-    save_it = false
+    # Get our proposal info
+    prop = @barclamp.get_proposal(inst)
+    prop_config = prop.active? ? prop.active_config : prop.current_config
+    dep_config = prop_config.config_hash
+
     #
     # At this point, we need to create our resource maps and recommendations.
     #
     # This is hard coded for now.  Should be parameter driven one day.
     # 
     @logger.debug("Deployer transition: Update the inventory crowbar structures for #{name}")
-    unless node[:block_device].nil? or node[:block_device].empty?
-      node.crowbar["crowbar"] = {} if node.crowbar["crowbar"].nil?
-      node.crowbar["crowbar"]["disks"] = {} 
-      node[:block_device].each do |disk, data|
+    unless chef_node[:block_device].nil? or chef_node[:block_device].empty?
+      chash = prop_config.get_node_config_hash(node)
+      chash["crowbar"] = {} if chash["crowbar"].nil?
+      chash["crowbar"]["disks"] = {} 
+      chef_node[:block_device].each do |disk, data|
         # XXX: Make this into a config map one day.
         next if disk.start_with?("ram")
         next if disk.start_with?("sr")
@@ -89,16 +98,15 @@ class DeployerService < ServiceObject
         next if data[:removable] == 1 or data[:removable] == "1" # Skip cdroms
 
         # RedHat under KVM reports drives as hdX.  Ubuntu reports them as sdX.
-        disk = disk.gsub("hd", "sd") if disk.start_with?("h") and node[:dmi][:system][:product_name] == "KVM"
+        disk = disk.gsub("hd", "sd") if disk.start_with?("h") and chef_node[:dmi][:system][:product_name] == "KVM"
   
-        node.crowbar["crowbar"]["disks"][disk] = data
+        chash["crowbar"]["disks"][disk] = data
 
         # "vda" is presumably unlikely on bare metal, but may be there if testing under KVM
-        node.crowbar["crowbar"]["disks"][disk]["usage"] = "OS" if disk == "sda" || disk == "vda"
-        node.crowbar["crowbar"]["disks"][disk]["usage"] = "Storage" unless disk == "sda" || disk == "vda"
-
-        save_it = true
+        chash["crowbar"]["disks"][disk]["usage"] = "OS" if disk == "sda" || disk == "vda"
+        chash["crowbar"]["disks"][disk]["usage"] = "Storage" unless disk == "sda" || disk == "vda"
       end 
+      prop_config.set_node_config_hash(node, chash)
     end 
 
     # 
@@ -108,50 +116,48 @@ class DeployerService < ServiceObject
     # 
     if state == "discovered"
       @logger.debug("Deployer transition: discovered state for #{name}")
+      chash = prop_config.get_node_config_hash(node)
+      chash["crowbar"] = {} if chash["crowbar"].nil?
 
-      if node.admin?
+      if node.is_admin?
         # We are an admin node - display bios updates for now.
-        node.crowbar["bios"] ||= {}
-        node.crowbar["bios"]["bios_setup_enable"] = false
-        node.crowbar["bios"]["bios_update_enable"] = false
-        node.crowbar["raid"] ||= {}
-        node.crowbar["raid"]["enable"] = false
-        save_it = true
+        chash["bios"] ||= {}
+        chash["bios"]["bios_setup_enable"] = false
+        chash["bios"]["bios_update_enable"] = false
+        chash["raid"] ||= {}
+        chash["raid"]["enable"] = false
       end
 
-      node.crowbar["crowbar"]["usage"] = [] if node.crowbar["crowbar"]["usage"].nil?
-      if (node.crowbar["crowbar"]["disks"].size > 1) and !node.crowbar["crowbar"]["usage"].include?("swift")
-        node.crowbar["crowbar"]["usage"] << "swift"
-        save_it = true
+      chash["crowbar"]["usage"] = [] if chash["crowbar"]["usage"].nil?
+      if (chash["crowbar"]["disks"] and chash["crowbar"]["disks"].size > 1) and !chash["crowbar"]["usage"].include?("swift")
+        chash["crowbar"]["usage"] << "swift"
       end
 
-      if !node.crowbar["crowbar"]["usage"].include?("nova")
-        node.crowbar["crowbar"]["usage"] << "nova"
-        save_it = true
+      if !chash["crowbar"]["usage"].include?("nova")
+        chash["crowbar"]["usage"] << "nova"
       end
-
-      node.save if save_it
 
       # Allocate required addresses
-      range = node.admin? ? "admin" : "host"
+      range = node.is_admin? ? "admin" : "host"
       @logger.debug("Deployer transition: Allocate admin address for #{name}")
-      ns = NetworkService.new @logger
+      ns = Barclamp.find_by_name("network").operations(@logger)
       result = ns.allocate_ip("default", "admin", range, name)
       @logger.error("Failed to allocate admin address for: #{node.name}: #{result[0]}") if result[0] != 200
       @logger.debug("Deployer transition: Done Allocate admin address for #{name}")
 
       @logger.debug("Deployer transition: Allocate bmc address for #{name}")
-      suggestion = node["crowbar_wall"]["ipmi"]["address"] rescue nil
-      role = RoleObject.find_role_by_name "deployer-config-#{inst}"
-      suggestion = nil if role and role.default_attributes["deployer"]["ignore_address_suggestions"]
+      suggestion = chef_node["crowbar_wall"]["ipmi"]["address"] rescue nil
+
+      suggestion = nil if dep_config and dep_config["deployer"]["ignore_address_suggestions"]
       result = ns.allocate_ip("default", "bmc", "host", name, suggestion)
       @logger.error("Failed to allocate bmc address for: #{node.name}: #{result[0]}") if result[0] != 200
       @logger.debug("Deployer transition: Done Allocate bmc address for #{name}")
 
       # If we are the admin node, we may need to add a vlan bmc address.
-      if node.admin?
+      if node.is_admin?
         # Add the vlan bmc if the bmc network and the admin network are not the same.
         # not great to do it this way, but hey.
+              # GREG: THIS NEEDS TO BE REPLACED LATER
         admin_net = ProposalObject.find_data_bag_item "crowbar/admin_network"
         bmc_net = ProposalObject.find_data_bag_item "crowbar/bmc_network"
         if admin_net["network"]["subnet"] != bmc_net["network"]["subnet"]
@@ -163,75 +169,80 @@ class DeployerService < ServiceObject
       end
 
       # Let it fly to the provisioner. Reload to get the address.
-      node = NodeObject.find_node_by_name node.name
-      node.crowbar["crowbar"]["usedhcp"] = true
-
-      role = RoleObject.find_role_by_name "deployer-config-#{inst}"
-      if role.default_attributes["deployer"]["use_allocate"] and !node.admin?
-        node.allocated = false 
+      chash["crowbar"]["usedhcp"] = true
+      if dep_config["deployer"]["use_allocate"] and !node.is_admin?
+        chash["crowbar"]["allocated"] = false
+        node.allocated = false
       else
+        chash["crowbar"]["allocated"] = true
         node.allocated = true
       end
 
+      prop_config.set_node_config_hash(node, chash)
       node.save
 
       @logger.debug("Deployer transition: leaving discovered for #{name} EOF")
-      return [200, node.to_hash ]
+      return [200, ""]
     end
 
     #
     # Once we have been allocated, we will fly through here and we will setup the raid/bios info
     #
     if state == "hardware-installing"
+      chash = prop_config.get_node_config_hash(node)
+      chash["crowbar"] = {} if chash["crowbar"].nil?
+
       # build a list of current and pending roles to check against
       roles = []
-      node.crowbar["crowbar"]["pending"].each do |k,v|
+      chash["crowbar"]["pending"].each do |k,v|
         roles << v
-      end unless node.crowbar["crowbar"]["pending"].nil?
-      roles << node.run_list_to_roles
+      end unless chash["crowbar"]["pending"].nil?
+      roles << chef_node.run_list_to_roles
       roles.flatten!
       done = false
       # Walk map to categorize the node.  Choose first one from the bios map that matches.
-      role = RoleObject.find_role_by_name "deployer-config-#{inst}"
-      role.default_attributes["deployer"]["bios_map"].each do |match|
+      done = false
+      dep_config["deployer"]["bios_map"].each do |match|
         roles.each do |r|
           next unless r =~ /#{match["pattern"]}/
-          node.crowbar["crowbar"]["hardware"] ||= {}
-          node.crowbar["crowbar"]["hardware"]["bios_set"] ||= match["bios_set"]
-          node.crowbar["crowbar"]["hardware"]["raid_set"] ||= match["raid_set"]
+          chash["crowbar"]["hardware"] ||= {}
+          chash["crowbar"]["hardware"]["bios_set"] ||= match["bios_set"]
+          chash["crowbar"]["hardware"]["raid_set"] ||= match["raid_set"]
           done = true
-          save_it = true
           break
         end 
         break if done
       end
+      prop_config.set_node_config_hash(node, chash)
     end
+
     if (state == "installing") || (state == "reinstall")
+      chash = prop_config.get_node_config_hash(node)
+      chash["crowbar"] = {} if chash["crowbar"].nil?
+
       # build a list of current and pending roles to check against
       roles = []
-      node.crowbar["crowbar"]["pending"].each do |k,v|
+      chash["crowbar"]["pending"].each do |k,v|
         roles << v
-      end unless node.crowbar["crowbar"]["pending"].nil?
-      roles << node.run_list_to_roles
+      end unless chash["crowbar"]["pending"].nil?
+      roles << chef_node.run_list_to_roles
       roles.flatten!
+
       done = false
-      role = RoleObject.find_role_by_name "deployer-config-#{inst}"
-      role.default_attributes["deployer"]["os_map"].each do |match|
+      dep_config["deployer"]["os_map"].each do |match|
         roles.each do |r|
           next unless r =~ /#{match["pattern"]}/
-          node.crowbar["crowbar"]["os"] ||= match["install_os"]
+          chash["crowbar"]["hardware"]["os"] = match["install_os"] 
           done = true
-          save_it = true
           break
         end
         break if done
       end
+      prop_config.set_node_config_hash(node, chash)
     end
 
-    node.save if save_it
-
     @logger.debug("Deployer transition: leaving state for #{name} EOF")
-    return [200, node.to_hash ]
+    return [200, ""]
   end
 
 end
