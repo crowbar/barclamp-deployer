@@ -128,27 +128,17 @@ end
 crowbar_ohai Mash.new
 crowbar_ohai[:switch_config] = Mash.new unless crowbar_ohai[:switch_config]
 
-# Packet captures are cached from previous runs; however this requires
-# the use of predictable pathnames.  To prevent this becoming a security
-# risk, we create a dedicated directory and ensure that we own it and
-# it's not writable by anyone else.
-#
-# See https://bugzilla.novell.com/show_bug.cgi?id=774967
-@tcpdump_dir = '/tmp/ohai-tcpdump'
+# Packet captures are cached from previous runs; however this requires the
+# use of predictable pathnames.  To prevent this becoming a security risk,
+# we create a dedicated directory in rubygem-ohai (mode 0750, root/root). 
 
-begin
-  Dir.mkdir(@tcpdump_dir, 0700)
-rescue Errno::EEXIST
-  # already created by previous run
-rescue
-  raise "Failed to mkdir #{@tcpdump_dir}: #$!"
-end
+# See https://bugzilla.novell.com/show_bug.cgi?id=774967
+@tcpdump_dir = '/var/run/ohai'
 
 me = Etc.getpwuid(Process.uid).name
 unless File.owned? @tcpdump_dir
   raise "#{@tcpdump_dir} must be owned by #{me}"
 end
-File::chmod(0700, @tcpdump_dir)
 
 def tcpdump_file(network)
   Pathname(@tcpdump_dir) + "#{network}.out"
