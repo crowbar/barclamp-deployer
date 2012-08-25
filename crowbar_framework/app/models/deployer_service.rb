@@ -188,7 +188,6 @@ class DeployerService < ServiceObject
     #
     # Once we have been allocated, we will fly through here and we will setup the raid/bios info
     #
-    #GREG: THIS SHOULD BE NODE SPECIFIC DATA.
     if state == "hardware-installing"
       chash = prop_config.get_node_config_hash(node)
       chash["crowbar"] = {} if chash["crowbar"].nil?
@@ -200,24 +199,45 @@ class DeployerService < ServiceObject
       end unless chash["crowbar"]["pending"].nil?
       roles << chef_node.run_list_to_roles
       roles.flatten!
-
+      done = false
       # Walk map to categorize the node.  Choose first one from the bios map that matches.
       done = false
       dep_config["deployer"]["bios_map"].each do |match|
         roles.each do |r|
-          if r =~ /#{match["pattern"]}/
-            chash["crowbar"]["hardware"] = {} if chash["crowbar"]["hardware"].nil? 
-            chash["crowbar"]["hardware"]["bios_set"] = match["bios_set"] if chash["crowbar"]["hardware"]["bios_set"].nil?
-            chash["crowbar"]["hardware"]["raid_set"] = match["raid_set"] if chash["crowbar"]["hardware"]["raid_set"].nil?
-            done = true
-            break
-          end
+          next unless r =~ /#{match["pattern"]}/
+          chash["crowbar"]["hardware"] ||= {}
+          chash["crowbar"]["hardware"]["bios_set"] ||= match["bios_set"]
+          chash["crowbar"]["hardware"]["raid_set"] ||= match["raid_set"]
+          done = true
+          break
         end 
         break if done
       end
-      
-      os_map = dep_config["deployer"]["os_map"]
-      chash["crowbar"]["hardware"]["os"] = os_map[0]["install_os"] 
+      prop_config.set_node_config_hash(node, chash)
+    end
+
+    if (state == "installing") || (state == "reinstall")
+      chash = prop_config.get_node_config_hash(node)
+      chash["crowbar"] = {} if chash["crowbar"].nil?
+
+      # build a list of current and pending roles to check against
+      roles = []
+      chash["crowbar"]["pending"].each do |k,v|
+        roles << v
+      end unless chash["crowbar"]["pending"].nil?
+      roles << chef_node.run_list_to_roles
+      roles.flatten!
+
+      done = false
+      dep_config["deployer"]["os_map"].each do |match|
+        roles.each do |r|
+          next unless r =~ /#{match["pattern"]}/
+          chash["crowbar"]["hardware"]["os"] = match["install_os"] 
+          done = true
+          break
+        end
+        break if done
+      end
       prop_config.set_node_config_hash(node, chash)
     end
 
