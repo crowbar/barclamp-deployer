@@ -149,7 +149,7 @@ class DeployerService < ServiceObject
       end
 
       node.crowbar["crowbar"]["usage"] = [] if node.crowbar["crowbar"]["usage"].nil?
-      if (node.crowbar["crowbar"]["disks"].size > 1) and !node.crowbar["crowbar"]["usage"].include?("swift")
+      if (node.crowbar["crowbar"]["disks"] and node.crowbar["crowbar"]["disks"].size > 1) and !node.crowbar["crowbar"]["usage"].include?("swift")
         node.crowbar["crowbar"]["usage"] << "swift"
         save_it = true
       end
