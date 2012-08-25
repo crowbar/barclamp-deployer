@@ -22,7 +22,7 @@ module BarclampLibrary
         node[:crowbar][:network].each do |net, data|
           intf, interface_list, tm = Barclamp::Inventory.lookup_interface_info(node, data["conduit"], intf_to_if_map)
           answer << Network.new(net, data, intf, interface_list)
-        end unless node[:crowbar][:network].nil?
+        end if (node[:crowbar][:network] || nil rescue nil)
         answer
       end
 
@@ -31,12 +31,12 @@ module BarclampLibrary
           next if data[:usage] != type
           intf, interface_list, tm = Barclamp::Inventory.lookup_interface_info(node, data["conduit"])
           return Network.new(net, data, intf, interface_list)
-        end unless node[:crowbar][:network].nil?
+        end if (node[:crowbar][:network] || nil rescue nil)
         node[:crowbar][:network].each do |net, data|
           next if data[:usage] != "admin"
           intf, interface_list, tm = Barclamp::Inventory.lookup_interface_info(node, data["conduit"])
           return Network.new(net, data, intf, interface_list)
-        end unless node[:crowbar][:network].nil?
+        end if (node[:crowbar][:network] || nil rescue nil)
         nil
       end
 
