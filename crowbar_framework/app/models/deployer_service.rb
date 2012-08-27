@@ -232,6 +232,7 @@ class DeployerService < ServiceObject
       dep_config["deployer"]["os_map"].each do |match|
         roles.each do |r|
           next unless r =~ /#{match["pattern"]}/
+          chash["crowbar"]["hardware"] ||= {}
           chash["crowbar"]["hardware"]["os"] = match["install_os"] 
           done = true
           break

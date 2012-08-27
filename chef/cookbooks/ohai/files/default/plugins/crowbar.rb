@@ -32,6 +32,7 @@ class System
 #{command} &
 sleep #{timeout}
 kill %1
+rm -f #{fd.path}
 EOF
     fd.close
 
@@ -40,8 +41,6 @@ EOF
     else
       system(fd.path)
     end
-
-    fd.delete
   end
 end
 
