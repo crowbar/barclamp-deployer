@@ -5,6 +5,25 @@ require 'xmlsimple'
 require 'yaml'
 require 'json'
 
+BIOS_SVC_CLASS = "DCIM_BIOSService"
+RAID_SVC_CLASS = "DCIM_RAIDService"
+JOB_SVC_CLASS  = "DCIM_JOBService"
+LC_SVC_CLASS   = "DCIM_LCService"
+SOFT_SVC_CLASS = "DCIM_SoftwareInstallationService"
+WSMAN_BASE_URI = "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2"
+WSMAN_URI_NS   = "#{WSMAN_BASE_URI}/root/dcim"
+SOFT_IDEN_URI  = "#{WSMAN_URI_NS}/DCIM_SoftwareIdentity"
+SOFT_SVC_URI   = "#{WSMAN_URI_NS}/DCIM_SoftwareInstallationService"
+SYS_VIEW_URI   = "#{WSMAN_URI_NS}/DCIM_SystemView"
+
+
+RETURN_CFG_OK         = 0
+RETURN_VAL_OK         = '0'
+RETURN_CONFIG_VAL_OK  = 4096
+RETURN_CFG_JOB        = 4096
+RETURN_VAL_FAIL       = '2'
+RETURN_VAL_NO_ACTION  = '-1'
+
 class Crowbar 
  class WSMAN
   attr :host
@@ -51,14 +70,19 @@ class Crowbar
   end
 
   def setup_env
-    WSMAN.setup_env(@host, @user, @password)
+    retVal  = WSMAN.setup_env(@host, @user, @password)
+    return retVal
   end
 
   # Action = enumerate, invoke, ...
   # url = http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/DCIM_SoftwareIdentity
   # args = non-standard args (not -h, -P, -u, -p, -c)
   def command(action, url, args = "", count = 0)
-    self.setup_env
+    retVal = self.setup_env
+    if (!retVal)
+      Chef::Log.error "Unable to ping system...exiting"
+      return false
+    end
     filename = WSMAN.certname(@host)
     output = ""
     ret=0
@@ -91,9 +115,8 @@ class Crowbar
   #   TIME_NOW
   #
   def schedule_job(jid, time)
-    output = self.command("invoke -a SetupJobQueue", 
-                          "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/DCIM_JobService?CreationClassName=DCIM_JobService,Name=JobService,SystemName=Idrac,SystemCreationClassName=DCIM_ComputerSystem", 
-                          "-k JobArray=\"#{jid}\" -k StartTimeInterval=\"#{time}\"")
+    job_svc_uri = find_instance_uri(JOB_SVC_CLASS)
+    output = self.command("invoke -a SetupJobQueue",job_svc_uri, " -k JobArray=\"#{jid}\" -k StartTimeInterval=\"#{time}\"")
     return false unless output
 
     hash = XmlSimple.xml_in(output, "ForceArray" => false)
@@ -115,9 +138,8 @@ class Crowbar
   end
 
   def clear_all_jobs
-    output = self.command("invoke -a DeleteJobQueue", 
-                          "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/DCIM_JobService?CreationClassName=DCIM_JobService,Name=JobService,SystemName=Idrac,SystemCreationClassName=DCIM_ComputerSystem", 
-                          "-m 256 -k JobID=\"JID_CLEARALL\"")
+    job_svc_uri = find_instance_uri(JOB_SVC_CLASS)
+    output = self.command("invoke -a DeleteJobQueue",job_svc_uri, " -m 256 -k JobID=\"JID_CLEARALL\"")
     return false unless output
 
     hash = XmlSimple.xml_in(output, "ForceArray" => false)
@@ -135,8 +157,7 @@ class Crowbar
   end
 
   def get_job_status(jid)
-    output = self.command("get", 
-                          "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/DCIM_LifecycleJob?InstanceID=#{jid}")
+    output = self.command("get","#{WSMAN_URI_NS}/DCIM_LifecycleJob?InstanceID=#{jid}")
     return false unless output
 
     hash = XmlSimple.xml_in(output, "ForceArray" => false)
@@ -157,9 +178,8 @@ class Crowbar
   end
 
   def is_RS_ready?
-    output = self.command("invoke -a GetRSStatus", 
-                          "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_LCService?SystemCreationClassName=DCIM_ComputerSystem,CreationClassName=DCIM_LCService,SystemName=DCIM:ComputerSystem,Name=DCIM:LCService",
-                          "-V")
+    lc_svc_uri = find_instance_uri(LC_SVC_CLASS) 
+    output = self.command("invoke -a GetRSStatus", lc_svc_uri)
     return false unless output
 
     hash = XmlSimple.xml_in(output, "ForceArray" => false)
@@ -178,8 +198,287 @@ class Crowbar
     end
 
     status = t["GetRSStatus_OUTPUT"]["Status"]
+    puts "Status from getrsstatus is #{status}"
     return status == "Ready", status
   end
+
+  ## Utility method to determine resource URI for a given class ##
+  ## Enumerates instance with EPR and parses keys to construct URI ##
+  def find_instance_uri(serviceClass)
+    url = "#{WSMAN_URI_NS}/#{serviceClass}"
+    xml = self.command(ENUMERATE_CMD, url, " -m 512 -M epr")
+    selectorStr = "#{url}?"
+    content = self.processResponse(xml,'["Body"]["EnumerateResponse"]["Items"]')
+    if content
+      selectorSet = content["EndpointReference"]["ReferenceParameters"]["SelectorSet"]
+      selectorSet["Selector"].each do |selector|
+        selectorStr += "," unless selectorStr == "#{url}?"
+        selectorStr += selector["Name"] + "=" + selector["content"] unless selector["Name"] == "__cimnamespace"
+      end
+    end
+    selectorStr
+  end
+
+  ## Utility method to determine resource URI for a given class ##
+  ## Enumerates instance with EPR and parses keys to construct URI ##
+  def find_base_instance_uri(serviceClass)
+    url = "#{WSMAN_BASE_URI}/#{serviceClass}"
+    xml = self.command(ENUMERATE_CMD, url, " -m 512 -M epr")
+    selectorStr = "#{url}?"
+    content = self.processResponse(xml,'["Body"]["EnumerateResponse"]["Items"]')
+    if content
+      selectorSet = content["EndpointReference"]["ReferenceParameters"]["SelectorSet"]
+      selectorSet["Selector"].each do |selector|
+        selectorStr += "," unless selectorStr == "#{url}?"
+        selectorStr += selector["Name"] + "=" + selector["content"] unless selector["Name"] == "__cimnamespace"
+      end
+    end
+    selectorStr
+  end
+
+
+  ## Utility method to determine resource URI when enumeration ##
+  ## uses flag for both object and EPR                         ##
+  def find_instance_uri_from_objepr(content)
+    selectorStr = "?"
+    if content
+      selectorSet = content["EndpointReference"]["ReferenceParameters"]["SelectorSet"]
+      selectorSet["Selector"].each do |selector|
+        selectorStr += "," unless selectorStr == "?"
+        selectorStr += selector["Name"] + "=" + selector["content"] unless selector["Name"] == "__cimnamespace"
+      end
+    end
+    selectorStr
+  end
+
+  def get_selector_string(instHash)
+    selectorStr = ""
+    selectorSet = instHash["EndpointReference"]["ReferenceParameters"]["SelectorSet"]
+    if (selectorSet["Selector"].is_a?(Array))
+      selectorSet["Selector"].each do |selector|
+        if (!selector.nil?)
+          selectorStr += %Q[<w:Selector Name="#{selector["Name"]}">#{selector["content"]}</w:Selector>] unless selector["Name"] == "__cimnamespace"
+        end
+      end
+    ## 11G returns this differently from 12G ...yeesh
+    elsif (selectorSet["Selector"].is_a?(Hash))
+      selectorStr += %Q[<w:Selector Name="#{selectorSet["Selector"]["Name"]}">#{selectorSet["Selector"]["content"]}</w:Selector>]
+    end
+    puts "selector string is #{selectorStr}"
+    selectorStr
+  end
+
+  ## Utility method to extract job id from the output of a job creation ##
+  ## command returning a reference to a CIM_ConcreteJob subclass instance ##
+  def get_job_id(instHash)
+    jobID = ""
+    selectorSet = ""
+    testFor12G  = instHash["EndpointReference"]
+    if (testFor12G.nil?)
+      selectorSet = instHash["ReferenceParameters"]["SelectorSet"]
+    else
+      selectorSet = instHash["EndpointReference"]["ReferenceParameters"]["SelectorSet"]
+    end
+    if (selectorSet["Selector"].is_a?(Array))
+      selectorSet["Selector"].each do |selector|
+        if (!selector.nil?)
+          jobID = selector["content"] if selector["Name"] != "__cimnamespace"
+        end
+      end
+    ## 11G returns this differently from 12G ...yeesh
+    elsif (selectorSet["Selector"].is_a?(Hash))
+      jobID = selectorSet["Selector"]["content"]
+    end
+    puts "parsed job id string is #{jobID}"
+    jobID
+  end
+
+  def get_job_selector(instHash)
+    puts "Parsing job selector string"
+    selectorStr = instHash["ReferenceParameters"]["ResourceURI"] + "?"
+    selectorSet = instHash["ReferenceParameters"]["SelectorSet"]
+    selectorSet["Selector"].each do |selector|
+      selectorStr += selector["Name"] + "=" + selector["content"] unless selector["Name"] == "__cimnamespace"
+    end
+    selectorStr
+  end
+
+  ## Utility method to turn a host off - this is needed if you are booted ##
+  ## into an OS .. the reboot jobs in that case doesn't seem to hard reset ##
+  def power_down_system()
+    retVal = false
+    method = "RequestStateChange"
+    ## Enumerate instances of CIM_ComputerSystem
+    xml = self.command(ENUMERATE_CMD, CS_INST_URI, " -m 512 -M objepr")
+    instanceList = self.processResponse(xml,'["Body"]["EnumerateResponse"]["Items"]["Item"]')
+    instanceList = (instanceList.instance_of?(Array))?instanceList:[instanceList]
+    instanceList.each do |instance|
+      if (instance.is_a?(Hash))
+        classNames = instance.keys
+        classNames.delete("EndpointReference")
+        ## Filter out the service processor instance and get only host instance
+        if ((instance[classNames[0]]['Dedicated']).to_i == 0)
+          newcsinst = "#{WSMAN_URI_NS}/#{classNames[0]}"
+          csuri = newcsinst + find_instance_uri_from_objepr(instance)
+          ## Invoke method RequestStateChange on the base server instance
+          xml = self.command("#{INVOKE_CMD} -a #{method} -k RequestedState='3'", csuri)
+          returnVal = self.returnValue(xml,method)
+          if returnVal.to_i == RETURN_CFG_OK
+            retVal = true
+          end
+        end
+      end
+    end
+    retVal
+  end
+
+  ## Utility method to create reboot jobs for updates ## 
+  ## this needs to replace current job creation routines eventually ##
+  def create_update_reboot_job()
+    retVal = false
+    jobID  = ""
+    puts "Creating reboot job for updates..."
+    method = "CreateRebootJob"
+    inputFile = "/tmp/#{method}.xml"
+    File.open("#{inputFile}", "w+") do |ff|
+      ff.write %Q[
+       <p:#{method}_INPUT xmlns:p="#{WSMAN_URI_NS}/DCIM_SoftwareInstallationService">
+          <p:RebootJobType>3</p:RebootJobType>
+        </p:#{method}_INPUT>
+      ]
+    end
+    cmd  = "#{INVOKE_CMD} -a #{method}"
+    instURI = find_instance_uri(SOFT_SVC_CLASS)
+    output = self.command(cmd, instURI , "-J #{inputFile}")
+    puts "Debug: create reboot job failed no output" unless output
+    return [ false, "Failed to create update job" ] unless output
+    retVal = self.returnValue(output,method)
+    if (retVal.to_i == RETURN_CFG_OK)
+      puts "No RID returned...invocation of downgrade failed"
+    elsif (retVal.to_i == RETURN_CFG_JOB)
+      wsInstance = self.processResponse(output, '["Body"]["CreateRebootJob_OUTPUT"]["RebootJobID"]')
+      jobID = get_job_id(wsInstance)
+      retVal = true
+    else
+      puts "Error encountered in job creation..."
+    end
+    [retVal, jobID]
+  end
+
+  ## Utility method to set up the job queue with multiple update jobs ##
+  ## and a reboot job ..useful for stacking updates / downgrades etc  ##
+  def setup_job_queue_multi(jobArray)
+    retVal = false
+    jobStr = ""
+    method = "SetupJobQueue"
+    if (jobArray.nil?)
+      puts "Input job array is nil...exiting"
+    else
+      inputFile = "/tmp/#{method}.xml"
+      File.open("#{inputFile}", "w+") do |ff|
+        ff.write %Q[<p:#{method}_INPUT xmlns:p="#{WSMAN_URI_NS}/#{JOB_SVC_CLASS}">]
+        jobArray.each do |jobID|
+          ff.write %Q[<p:JobArray>#{jobID}</p:JobArray>
+                     ]
+        end
+        ff.write %Q[<p:StartTimeInterval>TIME_NOW</p:StartTimeInterval>]
+        ff.write %Q[</p:#{method}_INPUT>]
+      end
+      cmd  = "#{INVOKE_CMD} -a #{method}"
+      svcUri = find_instance_uri(JOB_SVC_CLASS)
+      output = self.command(cmd, svcUri, "-J #{inputFile}")
+      puts output
+      returnVal = self.returnValue(output,method)
+      if returnVal.to_i == RETURN_CFG_OK
+        puts "Successfully set up job queue"
+        retVal = true
+      end
+    end
+    retVal
+  end
+
+  ## Utility method to create a targeted config job against a service   ##
+  ## class and target denoted by FQDD - generic method that can be used ##
+  ## against all hardware config etc                                    ##
+  def create_targeted_config_job(svc_class_uri, fqdd)
+    puts "Creating targeted config job..."
+    cmd = "#{INVOKE_CMD} -a CreateTargetedConfigJob -k Target=#{fqdd} -k ScheduledStartTime=TIME_NOW -k RebootJobType=3"
+    output = self.command(cmd, svc_class_uri)
+    returnVal = self.returnValue(output,"CreateTargetedConfigJob")
+    if returnVal.to_i == RETURN_CFG_JOB
+      puts "Successfully created a config job..."
+      wsInstance = self.processResponse(output,'["Body"]["CreateTargetedConfigJob_OUTPUT"]["Job"]')
+      jobURI = get_job_selector(wsInstance)
+      if (jobURI.nil?)
+        puts "Unable to parse JID for targeted config job on #{fqdd}...Exiting"
+      else
+        poll_job_for_completion(jobURI)
+      end
+    end
+  end
+
+  ## Utility method to poll multiple jobs triggered by setting up   ##
+  ## the job queue - this is useful when tracked from an admin node ##
+  ## and not in the current scenarios for updates etc               ##
+  ## Poll each job for it's status and when done, remove from the   ##
+  ## job array until all jobs are cleared..                         ##
+  def poll_multiple_jobs(jobArray)
+    while (jobArray.length != 0)
+      jobArray.each do |jobID|
+        puts "Polling job id #{jobID}"
+        ## ugh...hack because of bugs in wsman side
+        jobURI = "#{WSMAN_URI_NS}/DCIM_LifecycleJob?InstanceID=#{jobID}"
+        output = self.command("get", jobURI)
+        jobStatus = self.processResponse(output,'["Body"]["DCIM_LifecycleJob"]["JobStatus"]')
+        if (jobStatus.downcase =~ /.*completed.*/)
+          puts "Job #{jobID} completed successfully...."
+          jobArray.delete(jobID)
+        elsif (jobStatus.downcase =~ /fail/)
+          failReason = self.processResponse(output,'["Body"]["DCIM_LifecycleJob"]["Message"]')
+          failReasonID = self.processResponse(output,'["Body"]["DCIM_LifecycleJob"]["MessageID"]')
+          puts "Job failed..#{failReasonID}:#{failReason}"
+          jobArray.delete(jobID)
+        else
+          puts "Job status = #{jobStatus}...Continue to poll"
+          sleep(30)
+        end
+      end
+    end
+  end
+
+  def poll_job_for_completion(uri)
+    puts "Polling config job status... "
+    for i in 0..20
+      output = self.command("get", uri)
+      jobStatus = self.processResponse(output,'["Body"]["DCIM_LifecycleJob"]["JobStatus"]')
+      if (jobStatus.downcase =~ /completed/)
+        puts "Job completed successfully...."
+        break
+      elsif (jobStatus.downcase =~ /fail/)
+         failReason = self.processResponse(output,'["Body"]["DCIM_LifecycleJob"]["Message"]')
+         failReasonID = self.processResponse(output,'["Body"]["DCIM_LifecycleJob"]["MessageID"]')
+         puts "Job failed..#{failReasonID}:#{failReason}"
+         break
+       else
+         puts "Job status = #{jobStatus}...Continue to poll"
+         sleep(30)
+       end
+    end
+  end
+
+  ## Utility methods culled from xml_util.rb
+    def  processResponse(xml, path, options={"ForceArray" => false})
+    hash = XmlSimple.xml_in(xml, options)
+    output = eval("hash#{path}")
+    return output
+  end
+
+  def returnValue(xml,cmd)
+    path = '["Body"]["' + cmd + '_OUTPUT"]["ReturnValue"]'
+    processResponse(xml , path)
+  end
+
+
 
  end
 end
