@@ -126,6 +126,7 @@ module BarclampLibrary
         count_map = {}
         sorted_ifs.each do |intf|
           speeds = if_list[intf]["speeds"]
+          speeds = ['1g'] unless speeds   #legacy object support
           speeds.each do |speed|
             count = count_map[speed] || 1
             if_remap["#{speed}#{count}"] = intf
