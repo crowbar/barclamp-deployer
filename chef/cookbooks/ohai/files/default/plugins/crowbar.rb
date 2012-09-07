@@ -16,25 +16,30 @@
 require 'rubygems'
 require 'socket'
 require 'cstruct'
+require 'tempfile'
 require 'timeout'
 
 provides "crowbar_ohai"
 
 class System
   def self.background_time_command(timeout, background, name, command)
-    File.open("/tmp/tcpdump-#{name}.sh", "w+") { |fd|
-      fd.puts("#!/bin/bash")
-      fd.puts("#{command} &")
-      fd.puts("sleep #{timeout}")
-      fd.puts("kill %1")
-    }
+    fd = Tempfile.new("tcpdump-#{name}-")
+    fd.chmod(0700)
+    fd.puts <<-EOF.gsub(/^\s+/, '')
+      #!/bin/bash
+      #{command} &
+      sleep #{timeout}
+      kill %1
+    EOF
+    fd.close
 
-    system("chmod +x /tmp/tcpdump-#{name}.sh")
     if background
-      system("/tmp/tcpdump-#{name}.sh &")
+      system(fd.path + " &")
     else
-      system("/tmp/tcpdump-#{name}.sh")
+      system(fd.path)
     end
+
+    fd.delete
   end
 end
 
