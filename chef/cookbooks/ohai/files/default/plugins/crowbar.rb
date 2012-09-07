@@ -18,32 +18,8 @@ require 'socket'
 require 'cstruct'
 require 'etc'
 require 'pathname'
-require 'tempfile'
-require 'timeout'
 
 provides "crowbar_ohai"
-
-class System
-  def self.background_time_command(timeout, background, name, command)
-    fd = Tempfile.new("tcpdump-#{name}-")
-    fd.chmod(0700)
-    fd.puts <<-EOF.gsub(/^\s+/, '')
-      #!/bin/bash
-      #{command} &
-      sleep #{timeout}
-      kill %1
-    EOF
-    fd.close
-
-    if background
-      system(fd.path + " &")
-    else
-      system(fd.path)
-    end
-
-    fd.delete
-  end
-end
 
 # From: "/usr/include/linux/sockios.h"
 SIOCETHTOOL = 0x8946
@@ -204,7 +180,8 @@ Dir.foreach("/sys/class/net") do |entry|
 
   crowbar_ohai[:detected] = Mash.new unless crowbar_ohai[:detected]
   crowbar_ohai[:detected][:network] = Mash.new unless crowbar_ohai[:detected][:network]
-  crowbar_ohai[:detected][:network][entry] = spath
+  speeds = get_supported_speeds(entry)
+  crowbar_ohai[:detected][:network][entry] = { :path => spath, :speeds => speeds }
 
   logical_name = entry
   networks << logical_name
@@ -218,9 +195,9 @@ Dir.foreach("/sys/class/net") do |entry|
   Chef::Log.debug("tcpdump to: #{tcpdump_out}")
 
   if ! File.exists? tcpdump_out
-    cmd = "ifconfig #{logical_name} up ; tcpdump -c 1 -lv -v -i #{logical_name} -a -e -s 1514 ether proto 0x88cc > #{tcpdump_out}"
+    cmd = "ifconfig #{logical_name} up ; timeout 45 tcpdump -c 1 -lv -v -i #{logical_name} -a -e -s 1514 ether proto 0x88cc > #{tcpdump_out} &"
     Chef::Log.debug("cmd: #{cmd}")
-    System.background_time_command(45, true, logical_name, cmd)
+    system cmd
     wait=true
   end
 end
@@ -237,7 +214,8 @@ networks.each do |network|
   Chef::Log.debug("subtype intf name line: #{line}")
   if line =~ %r!(\d+)/\d+/(\d+)!
     sw_unit, sw_port = $1, $2
-  elsif line =~ /: Unit (\d+) Port (\d+)/
+  end
+  if line =~ /: Unit (\d+) Port (\d+)/
     sw_unit, sw_port = $1, $2
   end
   if line =~ %r!: (\S+ (\d+)/(\d+))!
