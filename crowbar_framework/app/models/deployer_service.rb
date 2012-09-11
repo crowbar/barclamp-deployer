@@ -60,10 +60,11 @@ class DeployerService < ServiceObject
 
     #
     # The temp booting images need to have clients cleared.
+    # After installation, there is also no client available
     #
     if ["delete","discovered","hardware-installed","hardware-updated",
         "hardware-installing","hardware-updating","reset","reinstall",
-        "update"].member?(state) and !node.admin?
+        "installing","installed","update"].member?(state) and !node.admin?
       @logger.debug("Deployer transition: should be deleting a client entry for #{node.name}")
       client = ClientObject.find_client_by_name node.name
       @logger.debug("Deployer transition: found and trying to delete a client entry for #{node.name}") unless client.nil?
@@ -110,8 +111,9 @@ class DeployerService < ServiceObject
   
         node.crowbar["crowbar"]["disks"][disk] = data
 
-        node.crowbar["crowbar"]["disks"][disk]["usage"] = "OS" if disk == "sda"
-        node.crowbar["crowbar"]["disks"][disk]["usage"] = "Storage" unless disk == "sda"
+        # "vda" is presumably unlikely on bare metal, but may be there if testing under KVM
+        node.crowbar["crowbar"]["disks"][disk]["usage"] = "OS" if disk == "sda" || disk == "vda"
+        node.crowbar["crowbar"]["disks"][disk]["usage"] = "Storage" unless disk == "sda" || disk == "vda"
 
         save_it = true
       end 
@@ -148,7 +150,7 @@ class DeployerService < ServiceObject
       end
 
       node.crowbar["crowbar"]["usage"] = [] if node.crowbar["crowbar"]["usage"].nil?
-      if (node.crowbar["crowbar"]["disks"].size > 1) and !node.crowbar["crowbar"]["usage"].include?("swift")
+      if (node.crowbar["crowbar"]["disks"] and node.crowbar["crowbar"]["disks"].size > 1) and !node.crowbar["crowbar"]["usage"].include?("swift")
         node.crowbar["crowbar"]["usage"] << "swift"
         save_it = true
       end
