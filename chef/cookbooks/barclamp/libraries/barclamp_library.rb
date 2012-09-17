@@ -22,7 +22,7 @@ module BarclampLibrary
         node[:crowbar][:network].each do |net, data|
           intf, interface_list, tm = Barclamp::Inventory.lookup_interface_info(node, data["conduit"], intf_to_if_map)
           answer << Network.new(net, data, intf, interface_list)
-        end unless node[:crowbar][:network].nil?
+        end unless node[:crowbar].nil? or node[:crowbar][:network].nil?
         answer
       end
 
