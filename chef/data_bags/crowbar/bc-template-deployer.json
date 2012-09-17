@@ -19,11 +19,13 @@
     "deployer": {
       "crowbar-revision": 0,
       "element_states": {
-        "deployer-client": [ "all" ]
+        "deployer-client": [ "all" ],
+        "bmc-nat-client": [ "all" ],
+        "bmc-nat-router": [ "all" ]
       },
       "elements": {},
       "element_order": [
-        [ "deployer-client" ]
+        [ "deployer-client", "bmc-nat-router", "bmc-nat-client" ]
       ],
       "config": {
         "environment": "deployer-config-test",
