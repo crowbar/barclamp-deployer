@@ -118,13 +118,17 @@ module BarclampLibrary
         conduits
       end
 
+      def self.get_detected_intfs(node)
+        node.automatic_attrs["crowbar_ohai"]["detected"]["network"]
+      end
+        
       def self.build_node_map(node)
         bus_order = Barclamp::Inventory.get_bus_order(node)
         conduits = Barclamp::Inventory.get_conduits(node)
 
         return {} if conduits.nil?
 
-        if_list = node.automatic_attrs["crowbar_ohai"]["detected"]["network"]
+        if_list = get_detected_intfs(node)
 
         # build a set of maps <intf-designator> -> <OS intf>
         # designators are <speed><#> (speed = 100m, 1g etc). # is a count of interfaces of the same speed.
