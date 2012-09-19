@@ -95,12 +95,17 @@ module BarclampLibrary
       def self.get_conduits(node)
         conduits = nil
         node["network"]["conduit_map"].each do |data|
+          # conduit pattern format:  <mode>/#nics/role-pattern
           parts = data["pattern"].split("/")
           the_one = true
+          ### find the right conduit mapping to be used based on the conduit's pattern and node info.
+          # check that the networking config mode (e.g. single/dual etc) matches
           the_one = false unless node["network"]["mode"] =~ /#{parts[0]}/
+          # check that the # of detected NIC's on the node matches.
           the_one = false unless node.automatic_attrs["crowbar_ohai"]["detected"]["network"].size.to_s =~ /#{parts[1]}/
 
           found = false
+          # if the conduit map has a role, check that the node at least one matching role
           node.roles.each do |role|
             found = true if role =~ /#{parts[2]}/
             break if found
@@ -113,13 +118,22 @@ module BarclampLibrary
         conduits
       end
 
+      def self.get_detected_intfs(node)
+        node.automatic_attrs["crowbar_ohai"]["detected"]["network"]
+      end
+        
       def self.build_node_map(node)
         bus_order = Barclamp::Inventory.get_bus_order(node)
         conduits = Barclamp::Inventory.get_conduits(node)
 
         return {} if conduits.nil?
 
-        if_list = node.automatic_attrs["crowbar_ohai"]["detected"]["network"]
+        if_list = get_detected_intfs(node)
+
+        # build a set of maps <intf-designator> -> <OS intf>
+        # designators are <speed><#> (speed = 100m, 1g etc). # is a count of interfaces of the same speed.
+        # OS intf is the name given to the interface by the operating system
+        # The intf-designator is 'stable' in terms of renumbering because of addition/removal of add on cards (across machines)
 
         sorted_ifs = Barclamp::Inventory.sort_ifs(if_list, bus_order)
         if_remap = {}
