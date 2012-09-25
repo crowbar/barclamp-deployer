@@ -23,7 +23,6 @@ class DeployerService < ServiceObject
       @logger.error("Deployer transition: leaving #{name} for #{state}: Node not found")
       return [404, "Node not found"] # GREG: Translate
     end
-    chef_node = node.node_object
 
     # 
     # If we are discovering the node, make sure that we add the deployer client to the node
@@ -45,23 +44,6 @@ class DeployerService < ServiceObject
       return [200, ""]
     end
 
-    #
-    # The temp booting images need to have clients cleared.
-    #
-    if ["delete","discovered","hardware-installed","hardware-updated",
-        "hardware-installing","hardware-updating","reset","reinstall",
-        "update"].member?(state) and !node.is_admin?
-      @logger.debug("Deployer transition: should be deleting a client entry for #{node.name}")
-      client = ClientObject.find_client_by_name node.name
-      @logger.debug("Deployer transition: found and trying to delete a client entry for #{node.name}") unless client.nil?
-      client.destroy unless client.nil?
-
-      # Make sure that the node can be accessed by knife ssh or ssh
-      if ["reset","reinstall","update","delete"].member?(state)
-        system("sudo rm /root/.ssh/known_hosts")
-      end
-    end
-
     # if delete - clear out stuff
     if state == "delete"
       # Do more work here - one day.
@@ -73,17 +55,20 @@ class DeployerService < ServiceObject
     prop_config = prop.active? ? prop.active_config : prop.current_config
     dep_config = prop_config.config_hash
 
+    # READ ONLY CMDB HASH - XXX: should be replaced by attributes one day
+    cmdb_hash = node.cmdb_hash
+
     #
     # At this point, we need to create our resource maps and recommendations.
     #
     # This is hard coded for now.  Should be parameter driven one day.
     # 
     @logger.debug("Deployer transition: Update the inventory crowbar structures for #{name}")
-    unless chef_node[:block_device].nil? or chef_node[:block_device].empty?
+    unless cmdb_hash[:block_device].nil? or cmdb_hash[:block_device].empty?
       chash = prop_config.get_node_config_hash(node)
       chash["crowbar"] = {} if chash["crowbar"].nil?
       chash["crowbar"]["disks"] = {} 
-      chef_node[:block_device].each do |disk, data|
+      cmdb_hash[:block_device].each do |disk, data|
         # XXX: Make this into a config map one day.
         next if disk.start_with?("ram")
         next if disk.start_with?("sr")
@@ -98,7 +83,7 @@ class DeployerService < ServiceObject
         next if data[:removable] == 1 or data[:removable] == "1" # Skip cdroms
 
         # RedHat under KVM reports drives as hdX.  Ubuntu reports them as sdX.
-        disk = disk.gsub("hd", "sd") if disk.start_with?("h") and chef_node[:dmi][:system][:product_name] == "KVM"
+        disk = disk.gsub("hd", "sd") if disk.start_with?("h") and cmdb_hash[:dmi][:system][:product_name] == "KVM"
   
         chash["crowbar"]["disks"][disk] = data
 
@@ -146,7 +131,7 @@ class DeployerService < ServiceObject
       @logger.debug("Deployer transition: Done Allocate admin address for #{name}")
 
       @logger.debug("Deployer transition: Allocate bmc address for #{name}")
-      suggestion = chef_node["crowbar_wall"]["ipmi"]["address"] rescue nil
+      suggestion = cmdb_hash["crowbar_wall"]["ipmi"]["address"] rescue nil
 
       suggestion = nil if dep_config and dep_config["deployer"]["ignore_address_suggestions"]
       result = ns.allocate_ip("default", "bmc", "host", name, suggestion)
@@ -197,7 +182,9 @@ class DeployerService < ServiceObject
       chash["crowbar"]["pending"].each do |k,v|
         roles << v
       end unless chash["crowbar"]["pending"].nil?
-      roles << chef_node.run_list_to_roles
+      # GREG: THIS IS A HACK - we need a better way to get this
+      # Use NodeRoles that are active
+      roles << cmdb_hash.run_list_to_roles
       roles.flatten!
       done = false
       # Walk map to categorize the node.  Choose first one from the bios map that matches.
@@ -225,7 +212,9 @@ class DeployerService < ServiceObject
       chash["crowbar"]["pending"].each do |k,v|
         roles << v
       end unless chash["crowbar"]["pending"].nil?
-      roles << chef_node.run_list_to_roles
+      # GREG: THIS IS A HACK - we need a better way to get this
+      # Use NodeRoles that are active
+      roles << cmdb_hash.run_list_to_roles
       roles.flatten!
 
       done = false
