@@ -25,6 +25,15 @@ if states.include?(node[:state])
     end
   end
 
+  template "/etc/logrotate.d/chef" do
+    source "logrotate.erb"
+    owner "root"
+    group "root"
+    mode "0644"
+    variables(:logfiles => "/var/log/chef/client.log",
+              :postrotate => "bluepill chef-client restart")
+  end
+
   # Set up some basic log rotation
   template "/etc/logrotate.d/crowbar-webserver" do
     source "logrotate.erb"
