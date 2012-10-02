@@ -49,7 +49,7 @@ if states.include?(node[:state])
     owner "root"
     group "root"
     mode "0644"
-    variables(:logfiles => "/var/log/nodes/*.log",
+    variables(:logfiles => "/var/log/nodes/*.log /var/log/nodes/.log",
               :postrotate => "/usr/bin/killall -HUP rsyslogd")
   end if node[:recipes].include?("logging::server")
   template "/etc/logrotate.d/client-join-logs" do
