@@ -154,15 +154,13 @@ class DeployerService < ServiceObject
       end
 
       # Let it fly to the provisioner. Reload to get the address.
-      chash["crowbar"]["usedhcp"] = true
       if dep_config["deployer"]["use_allocate"] and !node.is_admin?
-        chash["crowbar"]["allocated"] = false
         node.allocated = false
       else
-        chash["crowbar"]["allocated"] = true
         node.allocated = true
       end
 
+      chash["crowbar"]["usedhcp"] = true
       prop_config.set_node_config_hash(node, chash)
       node.save
 
