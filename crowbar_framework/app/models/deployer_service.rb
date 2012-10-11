@@ -127,20 +127,8 @@ class DeployerService < ServiceObject
     if state == "discovered"
       @logger.debug("Deployer transition: discovered state for #{name}")
 
-      if !node.admin?
-        @logger.debug("Deployer transition: check to see if we should rename: #{name}")
-        tname = node.name.split(".")[0]
-        tname = tname.gsub!("h", "d")
-        new_name = "#{tname}.#{ChefObject.cloud_domain}"
-        if new_name != node.name
-          @logger.debug("Deployer transition: renaming node for #{name} #{node.name} -> #{new_name}")
-          node.destroy
-
-          # Rename saves the node.
-          node.rename(new_name, ChefObject.cloud_domain)
-          name = new_name
-        end
-      else # We are an admin node - display bios updates for now.
+      if node.admin?
+      # We are an admin node - display bios updates for now.
         node.crowbar["bios"] ||= {}
         node.crowbar["bios"]["bios_setup_enable"] = false
         node.crowbar["bios"]["bios_update_enable"] = false
