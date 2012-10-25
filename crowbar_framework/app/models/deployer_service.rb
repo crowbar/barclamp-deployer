@@ -44,13 +44,7 @@ class DeployerService < ServiceObject
 
       db = ProposalObject.find_proposal("deployer", inst)
       role = RoleObject.find_role_by_name "deployer-config-#{inst}"
-      if node.admin?
-        roles = %w(deployer-client bmc-nat-router)
-      else
-        roles = %w(deployer-client bmc-nat-client)
-      end
-      roles.each do |r|
-        next if add_role_to_instance_and_node("deployer", inst, name, db, role, r)
+      unless add_role_to_instance_and_node("deployer", inst, name, db, role, "deployer-client")
         @logger.debug("Deployer transition: leaving #{name} for #{state}: discovering failed.")
         return [404, "Failed to add role to node"]
       end
@@ -157,14 +151,6 @@ class DeployerService < ServiceObject
       result = ns.allocate_ip("default", "admin", range, name)
       @logger.error("Failed to allocate admin address for: #{node.name}: #{result[0]}") if result[0] != 200
       @logger.debug("Deployer transition: Done Allocate admin address for #{name}")
-
-      @logger.debug("Deployer transition: Allocate bmc address for #{name}")
-      suggestion = node["crowbar_wall"]["ipmi"]["address"] rescue nil
-      role = RoleObject.find_role_by_name "deployer-config-#{inst}"
-      suggestion = nil if role and role.default_attributes["deployer"]["ignore_address_suggestions"]
-      result = ns.allocate_ip("default", "bmc", "host", name, suggestion)
-      @logger.error("Failed to allocate bmc address for: #{node.name}: #{result[0]}") if result[0] != 200
-      @logger.debug("Deployer transition: Done Allocate bmc address for #{name}")
 
       # If we are the admin node, we may need to add a vlan bmc address.
       if node.admin?

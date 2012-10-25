@@ -13,7 +13,6 @@
           "required": true,
           "mapping": {
             "use_allocate": { "type": "bool", "required": true },
-            "ignore_address_suggestions": { "type": "bool" },
             "bios_map": {
               "type": "seq",
               "required": true,
