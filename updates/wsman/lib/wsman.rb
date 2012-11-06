@@ -365,6 +365,30 @@ class Crowbar
     [retVal, jobID]
   end
 
+  def create_reboot_job()
+    retVal = false
+    jobID  = ""
+    puts "Creating reboot job for stacking in job queue..."
+    method = "CreateRebootJob"
+    cmd  = "#{INVOKE_CMD} -a #{method}"
+    instURI = find_instance_uri(JOB_SVC_CLASS)
+    output = self.command(cmd, instURI , "-k RebootJobType=3")
+    puts "Debug: create reboot job failed no output" unless output
+    return [ false, "Failed to create update job" ] unless output
+    retVal = self.returnValue(output,method)
+    if (retVal.to_i == RETURN_CFG_OK)
+      puts "No RID returned...invocation of createrebootjob failed"
+    elsif (retVal.to_i == RETURN_CFG_JOB)
+      wsInstance = self.processResponse(output, '["Body"]["CreateRebootJob_OUTPUT"]["Job"]')
+      jobID = get_job_id(wsInstance)
+      retVal = true
+    else
+      puts "Error encountered in job creation..."
+    end
+    [retVal, jobID]
+  end
+
+
   ## Utility method to set up the job queue with multiple update jobs ##
   ## and a reboot job ..useful for stacking updates / downgrades etc  ##
   def setup_job_queue_multi(jobArray)
