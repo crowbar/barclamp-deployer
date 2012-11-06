@@ -2,6 +2,7 @@
 name "deployer-client"
 description "Deployer Client role - Discovery components"
 run_list(
+         "recipe[chef_handler]",
          "recipe[barclamp]",
          "recipe[repos]",
          "recipe[crowbar-hacks]",
