@@ -58,6 +58,7 @@ class DeployerService < ServiceObject
     #
     if ["delete","discovered","hardware-installed","hardware-updated",
         "hardware-installing","hardware-updating","reset","reinstall",
+        "burnin-starting","burnin-finished","completing","completed",
         "installing","installed","update"].member?(state) and !node.admin?
       @logger.debug("Deployer transition: should be deleting a client entry for #{node.name}")
       client = ClientObject.find_client_by_name node.name
