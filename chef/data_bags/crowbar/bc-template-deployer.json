@@ -4,7 +4,6 @@
   "attributes": {
     "deployer": {
       "use_allocate": true,
-      "ignore_address_suggestions": false,
       "bios_map": [
 	{ "pattern": ".*-datanode", "bios_set": "Hadoop", "raid_set": "JBODOnly" },
 	{ "pattern": "(hadoop|clouderamanager)-.*", "bios_set": "Hadoop", "raid_set": "SingleRaid10" },

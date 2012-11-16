@@ -210,6 +210,8 @@ networks.each do |network|
   end
   if line =~ %r!: (\S+ (\d+)/(\d+))!
     sw_port_name, sw_unit, sw_port = $1, $2, $3
+  elsif line =~ %r!: (Gi(\d+)/(\d+))!
+    sw_port_name, sw_unit, sw_port = $1, $2, $3
   else
     sw_port_name = "#{sw_unit}/0/#{sw_port}"
   end
