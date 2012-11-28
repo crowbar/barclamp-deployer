@@ -5,7 +5,7 @@
     "deployer": {
       "use_allocate": true,
       "bios_map": [
-	{ "pattern": ".*-datanode", "bios_set": "Hadoop9202", "raid_set": "JBODOnly" },
+	{ "pattern": ".*-datanode", "bios_set": "Hadoop", "raid_set": "HadoopRaid1" },
 	{ "pattern": "(hadoop|clouderamanager)-.*", "bios_set": "Hadoop", "raid_set": "SingleRaid10" },
         { "pattern": "nova-.*", "bios_set": "Virtualization", "raid_set": "SingleRaid10" },
         { "pattern": "swift-.*", "bios_set": "Storage", "raid_set": "JBODOnly" },
