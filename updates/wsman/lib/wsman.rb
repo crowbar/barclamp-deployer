@@ -15,6 +15,7 @@ WSMAN_URI_NS   = "#{WSMAN_BASE_URI}/root/dcim"
 SOFT_IDEN_URI  = "#{WSMAN_URI_NS}/DCIM_SoftwareIdentity"
 SOFT_SVC_URI   = "#{WSMAN_URI_NS}/DCIM_SoftwareInstallationService"
 SYS_VIEW_URI   = "#{WSMAN_URI_NS}/DCIM_SystemView"
+BIOS_ENUM_URI  = "#{WSMAN_URI_NS}/DCIM_BIOSEnumeration"
 
 
 RETURN_CFG_OK         = 0
@@ -488,6 +489,24 @@ class Crowbar
          sleep(30)
        end
     end
+  end
+
+  def get_current_and_pending_bootmode()
+    current_mode = nil
+    pending_mode = nil
+    begin
+      output = self.command(ENUMERATE_CMD, BIOS_ENUM_URI, " -m 512 --dialect \"http://schemas.dmtf.org/wbem/cql/1/dsp0202.pdf\" -- filter \"select * from DCIM_BIOSEnumeration where AttributeName='BootMode'\" ")
+      if (output)
+        wsInstance = self.processResponse(output, '["Body"]["EnumerateResponse"]["Items"]')
+        current_mode = wsInstance["DCIM_BIOSEnumeration"]["CurrentValue"]
+        pending_mode = wsInstance["DCIM_BIOSEnumeration"]["PendingValue"]
+      else
+        puts "No data returned from enumeration of boot mode attribute"
+      end
+    rescue Exception => e
+      puts "Exception determining boot mode...#{e.message}"
+    end
+    [current_mode, pending_mode]
   end
 
   ## Utility methods culled from xml_util.rb
