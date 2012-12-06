@@ -495,7 +495,7 @@ class Crowbar
     current_mode = nil
     pending_mode = nil
     begin
-      output = self.command(ENUMERATE_CMD, BIOS_ENUM_URI, " -m 512 --dialect \"http://schemas.dmtf.org/wbem/cql/1/dsp0202.pdf\" -- filter \"select * from DCIM_BIOSEnumeration where AttributeName='BootMode'\" ")
+      output = self.command(ENUMERATE_CMD, BIOS_ENUM_URI, " -m 512 --dialect \"http://schemas.dmtf.org/wbem/cql/1/dsp0202.pdf\" --filter \"select * from DCIM_BIOSEnumeration where AttributeName='BootMode'\" ")
       if (output)
         wsInstance = self.processResponse(output, '["Body"]["EnumerateResponse"]["Items"]')
         current_mode = wsInstance["DCIM_BIOSEnumeration"]["CurrentValue"]
