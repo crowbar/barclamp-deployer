@@ -51,8 +51,8 @@ rpms:
     - glibc-devel
   pkgs:
     - tcpdump
-	
-	
+
+
 gems:
   pkgs:
     - xml-simple
