@@ -509,6 +509,48 @@ class Crowbar
     [current_mode, pending_mode]
   end
 
+  def get_uefi_boot_source_settings()
+    log("Determining UEFI boot source settings.")
+    bss     = nil
+    uefibss = [] 
+    url = "#{WSMAN_URI_NS}/DCIM_BootSourceSetting"
+    xml = self.command(ENUMERATE_CMD, url, "-m 512")
+    if (xml)
+      bss = self.processResponse(xml,'["Body"]["EnumerateResponse"]["Items"]["DCIM_BootSourceSetting"]')
+      if (bss)
+        bss.each do |setting|
+          if (setting['BootSourceType'] and setting['BootSourceType'] == "UEFI")
+            uefibss << setting
+          end
+        end
+      end
+    else
+      puts "No boot source settings found...Returning empty array of boot source settings"
+    end
+    uefibss
+  end
+
+  def get_bios_boot_source_settings()
+    log("Determining BIOS boot source settings.")
+    bss     = nil
+    biosbss = [] 
+    url = "#{WSMAN_URI_NS}/DCIM_BootSourceSetting"
+    xml = self.command(ENUMERATE_CMD, url, "-m 512")
+    if (xml)
+      bss = self.processResponse(xml,'["Body"]["EnumerateResponse"]["Items"]["DCIM_BootSourceSetting"]')
+      if (bss)
+        bss.each do |setting|
+          if (setting['BootSourceType'] and (setting['BootSourceType'] == "IPL" or setting['BootSourceType'] == "BCV"))
+            biosbss << setting
+          end
+        end
+      end
+    else
+      puts "No boot source settings found...Returning empty array of boot source settings"
+    end
+    biosbss
+  end
+
   ## Utility methods culled from xml_util.rb
     def  processResponse(xml, path, options={"ForceArray" => false})
     hash = XmlSimple.xml_in(xml, options)
