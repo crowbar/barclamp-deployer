@@ -511,7 +511,7 @@ class Crowbar
   end
 
   def get_uefi_boot_source_settings()
-    log("Determining UEFI boot source settings.")
+    puts "Determining UEFI boot source settings."
     bss     = nil
     uefibss = [] 
     url = "#{WSMAN_URI_NS}/DCIM_BootSourceSetting"
@@ -532,7 +532,7 @@ class Crowbar
   end
 
   def get_bios_boot_source_settings()
-    log("Determining BIOS boot source settings.")
+    puts "Determining BIOS boot source settings."
     bss     = nil
     biosbss = [] 
     url = "#{WSMAN_URI_NS}/DCIM_BootSourceSetting"
