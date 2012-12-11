@@ -16,6 +16,7 @@ SOFT_IDEN_URI  = "#{WSMAN_URI_NS}/DCIM_SoftwareIdentity"
 SOFT_SVC_URI   = "#{WSMAN_URI_NS}/DCIM_SoftwareInstallationService"
 SYS_VIEW_URI   = "#{WSMAN_URI_NS}/DCIM_SystemView"
 BIOS_ENUM_URI  = "#{WSMAN_URI_NS}/DCIM_BIOSEnumeration"
+CHANGE_BOOT_ORDER_CMD = "ChangeBootOrderByInstanceID"
 
 
 RETURN_CFG_OK         = 0
@@ -550,6 +551,79 @@ class Crowbar
     end
     biosbss
   end
+
+  ## Method to manipulate boot sources on the system and return ##
+  ## an array of modified boot sources used to create the config ##
+  def set_boot_sources(boot_mode, boot_source_settings, nicFirst = true)
+    puts "Setting boot sources - #{boot_mode}, #{nicFirst}"
+    boot_source_list = []
+    emb_nics         = []
+    int_nics         = []
+    all_other_nics   = []
+    other_boot_srcs  = []
+
+    return boot_source_list if (!boot_source_settings or boot_source_settings.length == 0)
+
+    puts "DBG:Current boot source settings list is #{boot_source_settings}"
+
+    if (boot_mode == "UEFI")
+      if (nicFirst)
+        boot_source_settings.each do |bss|
+          emb_nics        << bss if (bss['InstanceID'].start_with?('UEFI:NIC.Embedded'))
+          int_nics        << bss if (bss['InstanceID'].start_with?('UEFI:NIC.Integrated'))
+          all_other_nics  << bss if (bss['InstanceID'].start_with?('UEFI:NIC') and !emb_nics.include?(bss) and !int_nics.include?(bss) )
+          other_boot_srcs << bss if (!emb_nics.include?(bss) and !int_nics.include?(bss) and !all_other_nics.include?(bss))
+        end
+        boot_source_list = emb_nics.sort if (emb_nics and emb_nics.length > 0)
+        boot_source_list = boot_source_list | int_nics.sort        if (int_nics and int_nics.length > 0)
+        boot_source_list = boot_source_list | all_other_nics.sort  if (all_other_nics and all_other_nics.length > 0)
+        boot_source_list = boot_source_list | other_boot_srcs.sort if (other_boot_srcs and other_boot_srcs.length > 0)
+      else
+        puts "nicFirst = false. Returning current boot order"
+        boot_source_list = boot_source_settings
+      end
+    elsif (boot_mode == "BIOS")
+      if (nicFirst)
+        boot_source_settings.each do |bss|
+          emb_nics        << bss if (bss['InstanceID'].start_with?('IPL:NIC.Embedded'))
+          int_nics        << bss if (bss['InstanceID'].start_with?('IPL:NIC.Integrated'))
+          all_other_nics  << bss if (bss['InstanceID'].start_with?('IPL:NIC') and !emb_nics.include?(bss) and !int_nics.include?(bss) )
+          other_boot_srcs << bss if (!emb_nics.include?(bss) and !int_nics.include?(bss) and !all_other_nics.include?(bss))
+        end
+        boot_source_list = emb_nics.sort if (emb_nics and emb_nics.length > 0)
+        boot_source_list = boot_source_list | int_nics.sort        if (int_nics and int_nics.length > 0)
+        boot_source_list = boot_source_list | all_other_nics.sort  if (all_other_nics and all_other_nics.length > 0)
+        boot_source_list = boot_source_list | other_boot_srcs.sort if (other_boot_srcs and other_boot_srcs.length > 0)
+      else
+        puts "nicFirst = false. Returning current boot order"
+        boot_source_list = boot_source_settings
+      end
+    else
+      puts "Unknown boot mode #{boot_mode} - Not manipulating boot sources"
+    end
+    puts "DBG:Re-ordered boot source settings list is #{boot_source_list}"
+    boot_source_list
+  end
+
+  def writeBootSourceFile(inputFile, instanceIds)
+    File.open("#{inputFile}", "w+") do |f|
+          f.write %Q[
+             <p:#{CHANGE_BOOT_ORDER_CMD}_INPUT xmlns:p="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_BootConfigSetting"> 
+          ]
+          instanceIds.each do |instanceId|
+            next unless instanceId
+            next if instanceId == ""
+            f.write %Q[
+               <p:source>#{instanceId}</p:source> 
+            ]
+          end
+          f.write %Q[
+             </p:#{CHANGE_BOOT_ORDER_CMD}_INPUT>
+          ]
+        end
+    true
+  end
+
 
   ## Utility methods culled from xml_util.rb
     def  processResponse(xml, path, options={"ForceArray" => false})
