@@ -16,6 +16,7 @@ SOFT_IDEN_URI  = "#{WSMAN_URI_NS}/DCIM_SoftwareIdentity"
 SOFT_SVC_URI   = "#{WSMAN_URI_NS}/DCIM_SoftwareInstallationService"
 SYS_VIEW_URI   = "#{WSMAN_URI_NS}/DCIM_SystemView"
 BIOS_ENUM_URI  = "#{WSMAN_URI_NS}/DCIM_BIOSEnumeration"
+CHANGE_BOOT_ORDER_CMD = "ChangeBootOrderByInstanceID"
 
 
 RETURN_CFG_OK         = 0
@@ -508,6 +509,104 @@ class Crowbar
     end
     [current_mode, pending_mode]
   end
+
+  def get_uefi_boot_source_settings()
+    puts "Determining UEFI boot source settings."
+    bss     = nil
+    uefibss = [] 
+    url = "#{WSMAN_URI_NS}/DCIM_BootSourceSetting"
+    xml = self.command(ENUMERATE_CMD, url, "-m 512")
+    if (xml)
+      bss = self.processResponse(xml,'["Body"]["EnumerateResponse"]["Items"]["DCIM_BootSourceSetting"]')
+      if (bss)
+        bss.each do |setting|
+          if (setting['BootSourceType'] and setting['BootSourceType'] == "UEFI")
+            uefibss << setting
+          end
+        end
+      end
+    else
+      puts "No boot source settings found...Returning empty array of boot source settings"
+    end
+    uefibss
+  end
+
+  def get_bios_boot_source_settings()
+    puts "Determining BIOS boot source settings."
+    bss     = nil
+    biosbss = [] 
+    url = "#{WSMAN_URI_NS}/DCIM_BootSourceSetting"
+    xml = self.command(ENUMERATE_CMD, url, "-m 512")
+    if (xml)
+      bss = self.processResponse(xml,'["Body"]["EnumerateResponse"]["Items"]["DCIM_BootSourceSetting"]')
+      if (bss)
+        bss.each do |setting|
+          if (setting['BootSourceType'] and (setting['BootSourceType'] == "IPL" or setting['BootSourceType'] == "BCV"))
+            biosbss << setting
+          end
+        end
+      end
+    else
+      puts "No boot source settings found...Returning empty array of boot source settings"
+    end
+    biosbss
+  end
+
+  ## Method to manipulate boot sources on the system and return ##
+  ## an array of modified boot sources used to create the config ##
+  def set_boot_sources(boot_mode, boot_source_settings, nicFirst = true)
+    puts "Setting boot sources - #{boot_mode}, #{nicFirst}"
+    boot_source_list = []
+    emb_nics         = []
+    int_nics         = []
+    all_other_nics   = []
+    other_boot_srcs  = []
+
+    search_str       = "IPL"
+    search_str       = "UEFI" if (boot_mode == "UEFI")
+
+    return boot_source_list if (!boot_source_settings or boot_source_settings.length == 0)
+    return boot_source_list if (boot_mode != "UEFI" and boot_mode != "BIOS")
+
+    if (nicFirst)
+      boot_source_settings.each do |bss|
+        puts "DBG: Processing boot source - #{bss['InstanceID']}"
+        emb_nics        << bss['InstanceID'] if (bss['InstanceID'].start_with?("#{search_str}:NIC.Embedded"))
+        int_nics        << bss['InstanceID'] if (bss['InstanceID'].start_with?("#{search_str}:NIC.Integrated"))
+        all_other_nics  << bss['InstanceID'] if (bss['InstanceID'].start_with?("#{search_str}:NIC") and !emb_nics.include?(bss) and !int_nics.include?(bss) )
+        other_boot_srcs << bss['InstanceID'] if (!emb_nics.include?(bss) and !int_nics.include?(bss) and !all_other_nics.include?(bss))
+      end
+      boot_source_list = emb_nics.sort if (emb_nics and emb_nics.length > 0)
+      boot_source_list = boot_source_list | int_nics.sort        if (int_nics and int_nics.length > 0)
+      boot_source_list = boot_source_list | all_other_nics.sort  if (all_other_nics and all_other_nics.length > 0)
+      boot_source_list = boot_source_list | other_boot_srcs.sort if (other_boot_srcs and other_boot_srcs.length > 0)
+    else
+      puts "nicFirst = false. Returning current boot order"
+      boot_source_list = boot_source_settings
+    end
+    puts "DBG:Re-ordered boot source settings list is #{boot_source_list}"
+    boot_source_list
+  end
+
+  def writeBootSourceFile(inputFile, instanceIds)
+    File.open("#{inputFile}", "w+") do |f|
+          f.write %Q[
+             <p:#{CHANGE_BOOT_ORDER_CMD}_INPUT xmlns:p="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_BootConfigSetting"> 
+          ]
+          instanceIds.each do |instanceId|
+            next unless instanceId
+            next if instanceId == ""
+            f.write %Q[
+               <p:source>#{instanceId}</p:source> 
+            ]
+          end
+          f.write %Q[
+             </p:#{CHANGE_BOOT_ORDER_CMD}_INPUT>
+          ]
+        end
+    true
+  end
+
 
   ## Utility methods culled from xml_util.rb
     def  processResponse(xml, path, options={"ForceArray" => false})
