@@ -562,44 +562,27 @@ class Crowbar
     all_other_nics   = []
     other_boot_srcs  = []
 
+    search_str       = "IPL"
+    search_str       = "UEFI" if (boot_mode == "UEFI")
+
     return boot_source_list if (!boot_source_settings or boot_source_settings.length == 0)
+    return boot_source_list if (boot_mode != "UEFI" and boot_mode != "BIOS")
 
-    puts "DBG:Current boot source settings list is #{boot_source_settings}"
-
-    if (boot_mode == "UEFI")
-      if (nicFirst)
-        boot_source_settings.each do |bss|
-          emb_nics        << bss if (bss['InstanceID'].start_with?('UEFI:NIC.Embedded'))
-          int_nics        << bss if (bss['InstanceID'].start_with?('UEFI:NIC.Integrated'))
-          all_other_nics  << bss if (bss['InstanceID'].start_with?('UEFI:NIC') and !emb_nics.include?(bss) and !int_nics.include?(bss) )
-          other_boot_srcs << bss if (!emb_nics.include?(bss) and !int_nics.include?(bss) and !all_other_nics.include?(bss))
-        end
-        boot_source_list = emb_nics.sort if (emb_nics and emb_nics.length > 0)
-        boot_source_list = boot_source_list | int_nics.sort        if (int_nics and int_nics.length > 0)
-        boot_source_list = boot_source_list | all_other_nics.sort  if (all_other_nics and all_other_nics.length > 0)
-        boot_source_list = boot_source_list | other_boot_srcs.sort if (other_boot_srcs and other_boot_srcs.length > 0)
-      else
-        puts "nicFirst = false. Returning current boot order"
-        boot_source_list = boot_source_settings
+    if (nicFirst)
+      boot_source_settings.each do |bss|
+        puts "DBG: Processing boot source - #{bss['InstanceID']}"
+        emb_nics        << bss['InstanceID'] if (bss['InstanceID'].start_with?("#{search_str}:NIC.Embedded"))
+        int_nics        << bss['InstanceID'] if (bss['InstanceID'].start_with?("#{search_str}:NIC.Integrated"))
+        all_other_nics  << bss['InstanceID'] if (bss['InstanceID'].start_with?("#{search_str}:NIC") and !emb_nics.include?(bss) and !int_nics.include?(bss) )
+        other_boot_srcs << bss['InstanceID'] if (!emb_nics.include?(bss) and !int_nics.include?(bss) and !all_other_nics.include?(bss))
       end
-    elsif (boot_mode == "BIOS")
-      if (nicFirst)
-        boot_source_settings.each do |bss|
-          emb_nics        << bss if (bss['InstanceID'].start_with?('IPL:NIC.Embedded'))
-          int_nics        << bss if (bss['InstanceID'].start_with?('IPL:NIC.Integrated'))
-          all_other_nics  << bss if (bss['InstanceID'].start_with?('IPL:NIC') and !emb_nics.include?(bss) and !int_nics.include?(bss) )
-          other_boot_srcs << bss if (!emb_nics.include?(bss) and !int_nics.include?(bss) and !all_other_nics.include?(bss))
-        end
-        boot_source_list = emb_nics.sort if (emb_nics and emb_nics.length > 0)
-        boot_source_list = boot_source_list | int_nics.sort        if (int_nics and int_nics.length > 0)
-        boot_source_list = boot_source_list | all_other_nics.sort  if (all_other_nics and all_other_nics.length > 0)
-        boot_source_list = boot_source_list | other_boot_srcs.sort if (other_boot_srcs and other_boot_srcs.length > 0)
-      else
-        puts "nicFirst = false. Returning current boot order"
-        boot_source_list = boot_source_settings
-      end
+      boot_source_list = emb_nics.sort if (emb_nics and emb_nics.length > 0)
+      boot_source_list = boot_source_list | int_nics.sort        if (int_nics and int_nics.length > 0)
+      boot_source_list = boot_source_list | all_other_nics.sort  if (all_other_nics and all_other_nics.length > 0)
+      boot_source_list = boot_source_list | other_boot_srcs.sort if (other_boot_srcs and other_boot_srcs.length > 0)
     else
-      puts "Unknown boot mode #{boot_mode} - Not manipulating boot sources"
+      puts "nicFirst = false. Returning current boot order"
+      boot_source_list = boot_source_settings
     end
     puts "DBG:Re-ordered boot source settings list is #{boot_source_list}"
     boot_source_list
