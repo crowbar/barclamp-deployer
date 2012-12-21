@@ -429,7 +429,7 @@ class Crowbar
   ## against all hardware config etc                                    ##
   def create_targeted_config_job(svc_class_uri, fqdd)
     puts "Creating targeted config job..."
-    cmd = "#{INVOKE_CMD} -a CreateTargetedConfigJob -k Target=#{fqdd} -k ScheduledStartTime=TIME_NOW -k RebootJobType=3"
+    cmd = "#{INVOKE_CMD} -a CreateTargetedConfigJob -k Target=#{fqdd} -k ScheduledStartTime=TIME_NOW -k RebootJobType=1"
     output = self.command(cmd, svc_class_uri)
     returnVal = self.returnValue(output,"CreateTargetedConfigJob")
     if returnVal.to_i == RETURN_CFG_JOB
@@ -564,9 +564,6 @@ class Crowbar
     other_boot_srcs  = []
     enable_nic_srcs  = []
 
-    search_str       = "IPL"
-    search_str       = "UEFI" if (boot_mode == "UEFI")
-
     return boot_source_list if (!boot_source_settings or boot_source_settings.length == 0)
     return boot_source_list if (boot_mode != "UEFI" and boot_mode != "BIOS")
 
@@ -574,9 +571,9 @@ class Crowbar
       boot_source_settings.each do |bss|
         boot_src_instance_id = bss['InstanceID']
         puts "DBG: Processing boot source - #{boot_src_instance_id}"
-        emb_nics        << boot_src_instance_id if (boot_src_instance_id.start_with?("#{search_str}:NIC.Embedded"))
-        int_nics        << boot_src_instance_id if (boot_src_instance_id.start_with?("#{search_str}:NIC.Integrated"))
-        all_other_nics  << boot_src_instance_id if (boot_src_instance_id.start_with?("#{search_str}:NIC") and !emb_nics.include?(bss) and !int_nics.include?(bss) )
+        emb_nics        << boot_src_instance_id if (boot_src_instance_id.include?("NIC.Embedded"))
+        int_nics        << boot_src_instance_id if (boot_src_instance_id.include?("NIC.Integrated"))
+        all_other_nics  << boot_src_instance_id if (boot_src_instance_id.include?("NIC") and !emb_nics.include?(boot_src_instance_id) and !int_nics.include?(boot_src_instance_id) )
         other_boot_srcs << boot_src_instance_id if (!emb_nics.include?(boot_src_instance_id) and !int_nics.include?(boot_src_instance_id) and !all_other_nics.include?(boot_src_instance_id))
 
         ## Factory defaults for UEFI are to disable all Embedded and Integrated NIC boot sources
@@ -584,8 +581,8 @@ class Crowbar
         ## if it is enabled or disabled. If disabled, add to the list of boot srcs to be enabled
         if (boot_src_instance_id and !other_boot_srcs.include?(boot_src_instance_id) )
           if (boot_mode == "UEFI")
-            puts "DBG: Current state of #{boot_src_instance_id} is #{bss["CurrentEnabledStatus"].to_i}"
-            enable_nic_srcs << boot_src_instance_id if (bss["CurrentEnabledStatus"].to_i == 0)
+            puts "DBG: Current state of #{boot_src_instance_id} is #{bss['CurrentEnabledStatus'].to_i}"
+            enable_nic_srcs << boot_src_instance_id if (bss['CurrentEnabledStatus'].to_i == 0)
           else
             puts "Not enabling or checking disabled boot sources for BIOS boot mode"
           end
