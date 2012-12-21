@@ -9,7 +9,7 @@
 	{ "pattern": "(hadoop|clouderamanager)-.*", "bios_set": "HadoopInfra", "raid_set": "SingleRaid10" },
         { "pattern": "nova-.*", "bios_set": "Virtualization", "raid_set": "SingleRaid10" },
         { "pattern": "swift-.*", "bios_set": "Storage", "raid_set": "JBODOnly" },
-        { "pattern": ".*", "bios_set": "HadoopInfra", "raid_set": "SingleRaid10" }
+        { "pattern": ".*", "bios_set": "Virtualization", "raid_set": "SingleRaid10" }
       ],
       "os_map": [ { "pattern": ".*", "install_os": "os_install" } ] 	  
     }
