@@ -634,20 +634,19 @@ class Crowbar
   def change_boot_source_state(boot_src_list,state)
     ret_val    = false
     return_val = RETURN_VAL_FAIL
+    
+    ## Should switch based on boot mode...for now the only flip is for UEFI
+    boot_svc_uri =  "#{WSMAN_URI_NS}/DCIM_BootConfigSetting?InstanceID=UEFI"
+
     cmd        = "invoke -a #{CHANGE_BOOT_STATE_CMD}" 
     inputFile  = "/tmp/#{CHANGE_BOOT_STATE_CMD}.xml"
     if (boot_src_list and boot_src_list.length > 0)
       ret_val = write_enable_boot_src_file(inputFile, state, boot_src_list)
       if (ret_val)
-        bios_svc_uri = find_instance_uri(BIOS_SVC_CLASS)
-        if (bios_svc_uri)
-          output = self.command(cmd, bios_svc_uri , "-J #{inputFile}")
-          if (output)
-            puts "DBG: Output from #{CHANGE_BOOT_STATE_CMD} is #{output}"
-            return_val = self.returnValue(output, CHANGE_BOOT_STATE_CMD)
-          end
-        else
-          puts "DBG:Unable to find bios_svc_uri for enabling boot sources...Exiting"
+        output = self.command(cmd, boot_svc_uri , "-J #{inputFile}")
+        if (output)
+          puts "DBG: Output from #{CHANGE_BOOT_STATE_CMD} is #{output}"
+          return_val = self.returnValue(output, CHANGE_BOOT_STATE_CMD)
         end
       else
         puts "DBG:Failed to create boot source enablement input file..Exiting"
