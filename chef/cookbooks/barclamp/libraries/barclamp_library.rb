@@ -167,15 +167,15 @@ module BarclampLibrary
           found = if_map["#{speeds[x]}#{if_cnt}"] unless found
         }
         case m[1]
-          when '+' then (desired..speeds.length).each(&filter)
-          when '-' then desired.downto(0,&filter) 
-          when '?' then  
-            (desired..speeds.length).each(&filter)
-            desired.downto(0,&filter) unless found
-          else
-            found = if_map[ref]
-          end
-          found
+        when '+' then (desired..speeds.length).each(&filter)
+        when '-' then desired.downto(0,&filter) 
+        when '?' then  
+          (desired..speeds.length).each(&filter)
+          desired.downto(0,&filter) unless found
+        else
+          found = if_map[ref]
+        end
+        found
       end
         
       def self.lookup_interface_info(node, conduit, intf_to_if_map = nil)
