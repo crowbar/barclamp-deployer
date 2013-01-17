@@ -55,8 +55,8 @@ class DeployerService < ServiceObject
     prop_config = prop.active? ? prop.active_config : prop.current_config
     dep_config = prop_config.config_hash
 
-    # READ ONLY CMDB HASH - XXX: should be replaced by attributes one day
-    cmdb_hash = node.cmdb_hash
+    # READ ONLY Jig HASH - XXX: should be replaced by attributes one day
+    jig_hash = node.jig_hash
 
     #
     # At this point, we need to create our resource maps and recommendations.
@@ -64,11 +64,11 @@ class DeployerService < ServiceObject
     # This is hard coded for now.  Should be parameter driven one day.
     # 
     @logger.debug("Deployer transition: Update the inventory crowbar structures for #{name}")
-    unless cmdb_hash[:block_device].nil? or cmdb_hash[:block_device].empty?
+    unless jig_hash[:block_device].nil? or jig_hash[:block_device].empty?
       chash = prop_config.get_node_config_hash(node)
       chash["crowbar"] = {} if chash["crowbar"].nil?
       chash["crowbar"]["disks"] = {} 
-      cmdb_hash[:block_device].each do |disk, data|
+      jig_hash[:block_device].each do |disk, data|
         # XXX: Make this into a config map one day.
         next if disk.start_with?("ram")
         next if disk.start_with?("sr")
@@ -83,7 +83,7 @@ class DeployerService < ServiceObject
         next if data[:removable] == 1 or data[:removable] == "1" # Skip cdroms
 
         # RedHat under KVM reports drives as hdX.  Ubuntu reports them as sdX.
-        disk = disk.gsub("hd", "sd") if disk.start_with?("h") and cmdb_hash[:dmi][:system][:product_name] == "KVM"
+        disk = disk.gsub("hd", "sd") if disk.start_with?("h") and jig_hash[:dmi][:system][:product_name] == "KVM"
   
         chash["crowbar"]["disks"][disk] = data
 
@@ -131,7 +131,7 @@ class DeployerService < ServiceObject
       @logger.debug("Deployer transition: Done Allocate admin address for #{name}")
 
       @logger.debug("Deployer transition: Allocate bmc address for #{name}")
-      suggestion = cmdb_hash["crowbar_wall"]["ipmi"]["address"] rescue nil
+      suggestion = jig_hash["crowbar_wall"]["ipmi"]["address"] rescue nil
 
       suggestion = nil if dep_config and dep_config["deployer"]["ignore_address_suggestions"]
       result = ns.allocate_ip("default", "bmc", "host", name, suggestion)
@@ -182,7 +182,7 @@ class DeployerService < ServiceObject
       end unless chash["crowbar"]["pending"].nil?
       # GREG: THIS IS A HACK - we need a better way to get this
       # Use NodeRoles that are active
-      roles << cmdb_hash.run_list_to_roles
+      roles << jig_hash.run_list_to_roles
       roles.flatten!
       done = false
       # Walk map to categorize the node.  Choose first one from the bios map that matches.
@@ -212,7 +212,7 @@ class DeployerService < ServiceObject
       end unless chash["crowbar"]["pending"].nil?
       # GREG: THIS IS A HACK - we need a better way to get this
       # Use NodeRoles that are active
-      roles << cmdb_hash.run_list_to_roles
+      roles << jig_hash.run_list_to_roles
       roles.flatten!
 
       done = false
