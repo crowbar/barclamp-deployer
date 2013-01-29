@@ -151,6 +151,11 @@ class DeployerService < ServiceObject
       ns = NetworkService.new @logger
       result = ns.allocate_ip("default", "admin", range, name)
       @logger.error("Failed to allocate admin address for: #{node.name}: #{result[0]}") if result[0] != 200
+      if result[0] == 200
+        address = result[1]["address"]
+        boot_ip_hex  = sprintf("%08X",address.split('.').inject(0){|acc,i|(acc << 8)+i.to_i})        
+      end
+
       @logger.debug("Deployer transition: Done Allocate admin address for #{name}")
 
       # If we are the admin node, we may need to add a vlan bmc address.
@@ -178,6 +183,8 @@ class DeployerService < ServiceObject
         node.allocated = true
       end
 
+      # save this on the node after it's been refreshed with the network info.
+      node.crowbar["crowbar"]["boot_ip_hex"] = boot_ip_hex     
       node.save
 
       @logger.debug("Deployer transition: leaving discovered for #{name} EOF")
