@@ -156,7 +156,7 @@ class DeployerService < ServiceObject
         boot_ip_hex  = sprintf("%08X",address.split('.').inject(0){|acc,i|(acc << 8)+i.to_i})        
       end
 
-      @logger.debug("Deployer transition: Done Allocate admin address for #{name}")
+      @logger.debug("Deployer transition: Done Allocate admin address for #{name} boot file:#{boot_ip_hex}")
 
       # If we are the admin node, we may need to add a vlan bmc address.
       if node.admin?
@@ -184,7 +184,7 @@ class DeployerService < ServiceObject
       end
 
       # save this on the node after it's been refreshed with the network info.
-      node.crowbar["crowbar"]["boot_ip_hex"] = boot_ip_hex     
+      node.crowbar["crowbar"]["boot_ip_hex"] = boot_ip_hex  if boot_ip_hex
       node.save
 
       @logger.debug("Deployer transition: leaving discovered for #{name} EOF")
