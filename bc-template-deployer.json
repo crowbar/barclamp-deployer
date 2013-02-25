@@ -28,7 +28,7 @@
         [ "deployer-client", "bmc-nat-router", "bmc-nat-client" ]
       ],
       "config": {
-        "environment": "deployer-config-test",
+        "environment": "deployer-config-default",
         "mode": "full",
         "transitions": true,
         "transition_list": [ "all" ]
