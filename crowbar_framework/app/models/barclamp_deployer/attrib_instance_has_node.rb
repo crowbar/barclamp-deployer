@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-class BarclampCrowbar::AttribInstanceHasNode < AttribInstance
+class BarclampCrowbar::AttribInstanceHasNode < Attrib
 
   before_save :special_attrib
   

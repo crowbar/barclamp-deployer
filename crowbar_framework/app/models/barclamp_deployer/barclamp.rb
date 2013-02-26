@@ -23,10 +23,10 @@ class BarclampDeployer::Barclamp < Barclamp
       # there is only 1 map per barclamp/jig/attrib
       a = map.attrib
       # there can be multiple AttribInstances per node/barclamp instance
-      attribs = AttribInstance.where :attrib_id=>a.id, :node_id=>node.id
+      attribs = Attrib.where :attrib_id=>a.id, :node_id=>node.id
       if attribs.empty?
         # create the AIs for the data using the unbound role attribes that are already there
-        unset_attribs = AttribInstance.where :attrib_id=>a.id, :node_id => nil
+        unset_attribs = Attrib.where :attrib_id=>a.id, :node_id => nil
         unset_attribs.each do |na|
           # attach node to barclamp data (from role association)
           if na.barclamp.id == self.id
@@ -45,7 +45,7 @@ class BarclampDeployer::Barclamp < Barclamp
           # get the value
           value = jig.find_attrib_in_data data, map.map
           # store the value
-          target = AttribInstance.find ai.id
+          target = Attrib.find ai.id
           target.actual = value
           target.jig_run_id = jig_run.id
           target.save!

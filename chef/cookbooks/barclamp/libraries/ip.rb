@@ -227,7 +227,7 @@ class IP
       bits = ~ ((1 << (BITS - @subnet)) - 1)
       res = []
       PARTS.times do
-        res << bits & PART_MASK
+        res << (bits & PART_MASK)
         bits >>= BITS_PER_PART
       end
       res.reverse.join('.')
