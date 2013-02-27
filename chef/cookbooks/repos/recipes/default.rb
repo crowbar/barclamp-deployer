@@ -65,7 +65,6 @@ if provisioner and (provisioner[:provisioner][:repositories][os_token] || nil re
       notifies :delete, "file[/tmp/.repo_update]", :immediately
       only_if { ::File.exists? "/tmp/.repo_update" }
     end
-    package "rubygems"
   when "redhat","centos"
     bash "update software sources" do
       code "yum clean expire-cache"
