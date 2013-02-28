@@ -106,7 +106,7 @@ class ::Nic
     @addresses = ::Array.new
     @dependents = nil
     ::IO.popen("ip -o addr show dev #{@nic}") do |f|
-      f.read.each do |line|
+      f.each do |line|
         parts = line.gsub('\\','').split
         next unless parts[2] =~ /^inet/
         next if parts[5] == 'link'
