@@ -15,16 +15,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
+
 
 Ohai::Config[:plugin_path] << node.ohai.plugin_path
 Chef::Log.info("ohai plugins will be at: #{node.ohai.plugin_path}")
 
 # The crowbar ohai plugin requires rubygem-cstruct
-p = package "rubygem-cstruct" do
-  action :nothing
+if node["platform"] == "suse"
+  p = package "rubygem-cstruct" do
+    action :nothing
+  end
+  p.run_action(:install)
 end
-p.run_action(:install) if node["platform"] == "suse"
 
 d = directory node.ohai.plugin_path do
   owner 'root'
