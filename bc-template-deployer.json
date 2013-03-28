@@ -15,6 +15,11 @@
       "os_map": [ { "pattern": ".*", "install_os": "default_os" } ]
     }
   },
+  "roles": {
+      "deployer-client": { "implicit": true, "admin_implicit": true, "jig": "chef" },
+      "bmc-nat-client": { "implicit": true, "jig": "chef" },
+      "bmc-nat-router": { "admin_implicit": true, "jig": "chef" }
+  },
   "deployment": {
     "deployer": {
       "crowbar-revision": 0,
