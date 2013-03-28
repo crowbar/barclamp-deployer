@@ -20,14 +20,6 @@
 Ohai::Config[:plugin_path] << node.ohai.plugin_path
 Chef::Log.info("ohai plugins will be at: #{node.ohai.plugin_path}")
 
-# The crowbar ohai plugin requires rubygem-cstruct
-if node["platform"] == "suse"
-  p = package "rubygem-cstruct" do
-    action :nothing
-  end
-  p.run_action(:install)
-end
-
 d = directory node.ohai.plugin_path do
   owner 'root'
   group 'root'
