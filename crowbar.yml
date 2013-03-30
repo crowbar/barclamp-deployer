@@ -33,9 +33,9 @@ locale_additions:
   en:
     barclamp:
       deployer:
-        edit_attributes: 
+        edit_attributes:
           attributes: Attributes
-        edit_deployment: 
+        edit_deployment:
           deployment: Deployment
 
 debs:
@@ -63,8 +63,8 @@ rpms:
     - glibc-devel
   pkgs:
     - tcpdump
-	
-	
+
+
 gems:
   pkgs:
     - xml-simple
