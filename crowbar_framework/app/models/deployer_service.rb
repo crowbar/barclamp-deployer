@@ -129,13 +129,11 @@ class DeployerService < ServiceObject
 
       if !node.admin?
         @logger.debug("Deployer transition: check to see if we should rename: #{name}")
-        tname = node.name.split(".")[0]
-        tname = tname.gsub!("h", "d")
-        new_name = "#{tname}.#{ChefObject.cloud_domain}"
-        if new_name != node.name
+        unless name[0,1] == "d"
+          tname = name.split('.').first.gsub(/^h/,'d')
+          new_name = "#{tname}.#{ChefObject.cloud_domain}"
           @logger.debug("Deployer transition: renaming node for #{name} #{node.name} -> #{new_name}")
           node.destroy
-
           # Rename saves the node.
           node.rename(new_name, ChefObject.cloud_domain)
           name = new_name
