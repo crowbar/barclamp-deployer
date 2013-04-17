@@ -121,6 +121,18 @@ class ::Nic
     self
   end
 
+  # Get all the routes that pass through us.
+  def routes
+    res=[]
+    ::IO.popen("ip -o route show dev #{@nic}") do |f|
+      f.each do |line|
+        next if line =~ /proto kernel/
+        res << line.strip
+      end
+    end
+    res
+  end
+ 
   # Get a list of all IP4 and IP6 addresses bound to a nic.
   def addresses
     @addresses
@@ -308,6 +320,29 @@ class ::Nic
     []
   end
 
+  # Usurp config from another nic.
+  def usurp(victim)
+    self.up
+    victim = ::Nic.coerce(victim)
+    new_routes = (victim.routes - routes)
+    new_addrs = victim.addresses
+    return [ [], [] ] if new_routes.empty? && new_addrs.empty?
+    victim.flush
+    new_addrs.each do |addr| add_address(addr) end
+    new_routes.each do |route| run_ip("route add #{route} dev #{@nic}") end
+    [new_addrs, new_routes]
+  end
+
+  # Usurp all the addresses and routes from our slaves.
+  def usurp_all
+    s = slaves
+    return if s.empty?
+    s.each do |slave|
+      slave.usurp_all
+      usurp(slave)
+    end
+  end
+
   # Return the bond we are enslaved to, or nil if we are not in a bond.
   def bond_master
     return nil unless File.exists?("#{@nicdir}/master")
@@ -433,10 +468,8 @@ class ::Nic
       if current_master = slave.master()
         current_master.remove_slave(slave)
       end
-      new_addrs = slave.addresses
-      slave.flush
+      usurp(slave)
       slave.down
-      new_addrs.each{|a|self.add_address a}
       sysfs_put("bonding/slaves","+#{slave}")
       slave
     end
@@ -532,9 +565,7 @@ class ::Nic
         current_master.remove_slave(slave)
       end
       slave.up
-      new_addrs = slave.addresses
-      slave.flush
-      new_addrs.each{|a|self.add_address a}
+      usurp(slave)
       ::Kernel.system("brctl addif #{@nic} #{slave}")
     end
 
