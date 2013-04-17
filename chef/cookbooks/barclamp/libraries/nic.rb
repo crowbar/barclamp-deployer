@@ -9,6 +9,7 @@ class ::Nic
   @nicdir = nil
   @addresses = ::Array.new
   @dependents = nil
+  BASEDIRS=["/sys/class/net","/sys/devices/virtual/net"]
 
   # Helper method for reading values from sysfs for a nic.
   def sysfs(file)
@@ -24,7 +25,10 @@ class ::Nic
   # Basic initialization routine for subclasses of Nic.
   def initialize(nic)
     @nic = nic.dup.freeze
-    @nicdir = "/sys/class/net/#{nic}".freeze
+    @nicdir = BASEDIRS.map{|d|::File.join(d,nic)}.inject do |m,i|
+      ::File.directory?(i) ? i : m
+    end
+    raise RuntimeError.new("Cannot find sysfs dir for #{nic}") unless @nicdir
     refresh()
   end
 
@@ -33,7 +37,8 @@ class ::Nic
     ::Kernel.system("ip #{arg}")
   end
 
-  # Return an unsorted array of all nics on the system.
+  # Return an unsorted array of all visible nics on the system.
+  # This will skip virtual nics that OVS creates.
   def self.__nics
     res = []
     ::Dir.entries("/sys/class/net").each do |d|
@@ -65,8 +70,7 @@ class ::Nic
   # Some class functions for determining what kind of nic
   # we are looking at.
   def self.exists?(nic)
-    nic.kind_of?(::Nic) or
-      ::File.exists?("/sys/class/net/#{nic}")
+    nic.kind_of?(::Nic) or BASEDIRS.any?{|d|::File.exists?("#{d}/#{nic}")}
   end
 
   def self.coerce(nic)
