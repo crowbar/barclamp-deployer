@@ -16,6 +16,7 @@
 provisioners = search(:node, "roles:provisioner-server")
 provisioner = provisioners[0] if provisioners
 os_token="#{node[:platform]}-#{node[:platform_version]}"
+Chef::Log.info("Running on #{os_token}")
 
 file "/tmp/.repo_update" do
   action :nothing
@@ -24,11 +25,11 @@ end
 states = [ "ready", "readying", "recovering", "applying" ]
 if provisioner and states.include?(node[:state])
   web_port = provisioner["provisioner"]["web_port"]
-  repositories = provisioner["provisioner"]["repositories"][os_token]
   address = Chef::Recipe::Barclamp::Inventory.get_network_by_type(provisioner, "admin").address
 
   case node["platform"]
   when "ubuntu","debian"
+    repositories = provisioner["provisioner"]["repositories"][os_token]
     cookbook_file "/etc/apt/apt.conf.d/99-crowbar-no-auth" do
       source "apt.conf"
     end
@@ -57,6 +58,10 @@ if provisioner and states.include?(node[:state])
     end
     package "rubygems"
   when "redhat","centos"
+    maj,min = node[:platform_version].split('.',2)
+    repositories = Range.new(0,min.to_i).to_a.reverse.map{|v|
+      provisioner["provisioner"]["repositories"]["#{node[:platform]}-#{maj}.#{v}"] rescue nil
+    }.compact.first
     bash "update software sources" do
       code "yum clean expire-cache"
       action :nothing
