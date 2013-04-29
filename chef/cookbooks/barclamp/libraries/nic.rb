@@ -444,13 +444,15 @@ class ::Nic
     end
 
     def self.create_bond(nic)
-      ::File.open(MASTER,"w") do |f|
-        f.write("+#{nic}")
+      5.times do
+        return if self.exists?(nic) && self.bond?(nic)
+        ::File.open(MASTER,"w") do |f|
+          f.write("+#{nic}")
+        end
+        sleep(0.1)
       end
-      unless ::File.exists?("/sys/class/net/#{nic}")
-        self.kill_bond(nic)
-        raise ::RuntimeError.new("Could not create bond #{net}")
-      end
+      self.kill_bond(nic)
+      raise ::RuntimeError.new("Could not create bond #{net}")
     end
 
     public
@@ -623,12 +625,18 @@ class ::Nic
         ::Kernel.system("modprobe bridge")
       end
       ::Kernel.system("brctl addbr #{nic}")
-      iface = ::Nic.new(nic)
-      slaves.each do |slave|
-        iface.add_slave slave
+      5.times do
+        if self.exists?(nic) && self.bridge?(nic)
+          iface = ::Nic.new(nic)
+          slaves.each do |slave|
+            iface.add_slave slave
+          end
+          iface.up
+          return iface
+        end
+        sleep(0.1)
       end
-      iface.up
-      iface
+      raise ::ArgumentError.new("Unable to create new bridge #{nic}")
     end
   end
 
@@ -671,9 +679,15 @@ class ::Nic
       parent.up
       Kernel.system("vconfig set_name_type DEV_PLUS_VID_NO_PAD")
       Kernel.system("vconfig add #{parent} #{vlan}")
-      n = ::Nic.new(nic)
-      n.up
-      n
+      5.times do
+        if self.exists?(nic) && self.vlan?(nic)
+          n = ::Nic.new(nic)
+          n.up
+          return n
+        end
+        sleep(0.1)
+      end
+      raise ::ArgumentError.new("Unable to create VLAN interface #{nic}")
     end
   end
 end
