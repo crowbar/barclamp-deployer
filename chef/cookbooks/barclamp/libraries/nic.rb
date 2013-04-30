@@ -463,6 +463,25 @@ class ::Nic
 
     public
 
+    # Find a bond that includes these nics.
+    def self.find(nics)
+      t = Hash.new
+      nics.each do |n|
+        n = Nic.coerce(n)
+        t[n.name]=n
+      end
+      self.__nics.each do |nic|
+        next unless Nic.bond?(nic)
+        q = Hash.new
+        nic.slaves.each do |n|
+          q[n.name] = n
+        end
+        next unless t == q
+        return nic
+      end
+      nil
+    end
+
     def slaves
       sysfs("bonding/slaves").split.map{|i| ::Nic.new(i)}
     end
