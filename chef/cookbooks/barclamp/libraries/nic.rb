@@ -362,7 +362,7 @@ class ::Nic
 
   # Figure out all the interfaces we depend on.
   def dependents
-    return @dependents if @dependents
+    return @dependents.map{|d|Nic.new(d)} if @dependents
     res = self.parents
     res.dup.each do |d|
       res = res + d.dependents
@@ -371,7 +371,7 @@ class ::Nic
     slaves.each do |s|
       res = res + s.dependents
     end
-    @dependents = res
+    @dependents = res.map{|d|d.name}
     res
   end
 
@@ -413,20 +413,26 @@ class ::Nic
   # If you want to create a new interface, call one of the
   # create methods on a subclass.
   def self.new(nic)
+    logstr=''
     if o = @@interfaces[nic]
       return o
     elsif vlan?(nic)
       o = ::Nic::Vlan.allocate
+      logstr = "Returning new VLAN interface"
     elsif bridge?(nic)
       o = ::Nic::Bridge.allocate
+      logstr = "Returning new bridge interface"
     elsif bond?(nic)
       o = ::Nic::Bond.allocate
+      logstr = "Returning new bond interface"
     elsif exists?(nic)
       o = ::Nic.allocate
+      logstr = "Returning new interface"
     else
       raise ArgumentError.new("#{nic} does not exist!  Did you mean Nic.create?")
     end
     o.send(:initialize, nic)
+    Chef::Log.info("#{logstr} #{o.inspect}")
     @@interfaces[nic] = o
     return o
   end
@@ -456,6 +462,25 @@ class ::Nic
     end
 
     public
+
+    # Find a bond that includes these nics.
+    def self.find(nics)
+      t = Hash.new
+      nics.each do |n|
+        n = Nic.coerce(n)
+        t[n.name]=n
+      end
+      self.__nics.each do |nic|
+        next unless Nic.bond?(nic)
+        q = Hash.new
+        nic.slaves.each do |n|
+          q[n.name] = n
+        end
+        next unless t == q
+        return nic
+      end
+      nil
+    end
 
     def slaves
       sysfs("bonding/slaves").split.map{|i| ::Nic.new(i)}
@@ -529,6 +554,7 @@ class ::Nic
     end
 
     def self.create(nic,mode=6,miimon=100)
+      Chef::Log.info("Creating new bond #{nic}")
       if self.exists?(nic)
         raise ::ArgumentError.new("#{nic} already exists.")
       elsif ! ::File.exists?("/sys/module/bonding")
@@ -618,6 +644,7 @@ class ::Nic
     end
 
     def self.create(nic,slaves=[])
+      Chef::Log.info("Creating new bridge #{nic}")
       if self.exists?(nic)
         raise ::ArgumentError.new("#{nic} already exists.")
       end
@@ -664,6 +691,7 @@ class ::Nic
 
     def self.create(parent,vlan)
       nic = "#{parent}.#{vlan}"
+      Chef::Log.info("Creating new VLAN interface #{nic}")
       if self.exists?(nic)
         raise ::ArgumentError.new("#{nic} already exists.")
       end
