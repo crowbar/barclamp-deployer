@@ -276,6 +276,10 @@ class ::Nic
     (flags & 32786) > 0
   end
 
+  def loopback?
+    sysfs("type") == "772"
+  end
+
   # Set a nic to be up.
   def up
     return self if up?
