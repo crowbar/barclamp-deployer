@@ -25,8 +25,8 @@ class ::Nic
   # Basic initialization routine for subclasses of Nic.
   def initialize(nic)
     @nic = nic.dup.freeze
-    @nicdir = BASEDIRS.map{|d|::File.join(d,nic)}.inject do |m,i|
-      ::File.directory?(i) ? i : m
+    @nicdir = BASEDIRS.map{|d|::File.join(d,nic)}.find do |i|
+      ::File.directory?(i)
     end
     raise RuntimeError.new("Cannot find sysfs dir for #{nic}") unless @nicdir
     refresh()
@@ -418,7 +418,9 @@ class ::Nic
   # create methods on a subclass.
   def self.new(nic)
     logstr=''
-    if o = @@interfaces[nic]
+    if nic.is_a?(::Nic)
+      return nic
+    elsif o = @@interfaces[nic]
       return o
     elsif vlan?(nic)
       o = ::Nic::Vlan.allocate
@@ -502,6 +504,7 @@ class ::Nic
       usurp(slave)
       slave.down
       sysfs_put("bonding/slaves","+#{slave}")
+      slave.up
       slave
     end
 
@@ -519,11 +522,14 @@ class ::Nic
     end
 
     def mode=(new_mode)
+      myslaves = slaves
       begin
+        myslaves.each do |s| remove_slave(s) end
         self.down
         sysfs_put("bonding/mode",new_mode)
       ensure
         self.up
+        myslaves.each do |s| add_slave(s) end
       end
       self
     end
