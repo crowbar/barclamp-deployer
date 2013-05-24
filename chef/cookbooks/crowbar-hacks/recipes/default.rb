@@ -13,11 +13,11 @@
 # limitations under the License.
 #
 
-# This recipie is a placeholder for misc. hacks we want to do on every node,
+# This recipe is a placeholder for misc. hacks we want to do on every node,
 # but that do not really belong with any specific barclamp.
 
 states = [ "ready", "readying", "recovering", "applying" ]
-if states.include?(node[:state])
+if node["platform"] != "suse" and states.include?(node[:state])
   # Don't waste time with mlocate or updatedb
   %w{mlocate mlocate.cron updatedb}.each do |f|
     file "/etc/cron.daily/#{f}" do
@@ -59,6 +59,8 @@ if states.include?(node[:state])
     mode "0644"
     variables(:logfiles => ["/var/log/crowbar-*.log","/var/log/crowbar-*.err"])
   end unless node[:recipes].include?("crowbar")
+
+  # Note: if adding another hack here, first check if it's needed on SUSE platform too
 end
 
 def sort_boot_order(bootargs)
