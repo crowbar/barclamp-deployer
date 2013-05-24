@@ -57,7 +57,7 @@ if node["platform"] != "suse" and states.include?(node[:state])
     owner "root"
     group "root"
     mode "0644"
-    variables(:logfiles => ["/var/log/crowbar-*.log","/var/log/crowbar-*.err"])
+    variables(:logfiles => ["/var/log/crowbar/crowbar_join/*"])
   end unless node[:recipes].include?("crowbar")
 
   # Note: if adding another hack here, first check if it's needed on SUSE platform too
