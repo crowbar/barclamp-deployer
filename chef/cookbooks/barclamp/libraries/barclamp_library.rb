@@ -40,15 +40,6 @@ module BarclampLibrary
         nil
       end
 
-      def self.list_disks(node)
-        answer = []
-        node[:crowbar][:disks].each do |disk, data|
-          answer << Disk.new(disk, data)
-        end unless node[:crowbar][:disks].nil?
-        answer
-      end
-
-
       def self.bus_index(bus_order, path)
         return 999 if bus_order.nil?
 
@@ -243,17 +234,115 @@ module BarclampLibrary
       end
 
       class Disk
-        attr_reader :name, :model, :removable, :rev, :size, :state, :timeout, :vendor, :usage
-        def initialize(disk, data)
-          @name = "/dev/#{disk}"
-          @model = data["model"] || "Unknown"
-          @removable = data["removable"] != "0"
-          @rev = data["rev"] || "Unknown"
-          @size = (data["size"] || 0).to_i
-          @state = data["state"] || "Unknown"
-          @timeout = (data["timeout"] || 0).to_i
-          @vendor = data["vendor"] || "NA"
-          @usage = data["usage"] || "Unknown"
+        attr_reader :device
+        def initialize(node,name)
+          @device = name
+          @node = node
+        end
+
+        def self.all(node)
+          node[:block_device].keys.map{|d|Disk.new(node,d)}
+        end
+
+        def self.unclaimed(node)
+          all(node).select{|d|d.fixed && !d.claimed?}
+        end
+
+        def self.claimed(node,owner)
+          all(node).select{|d| c = d.claimed?; c != nil && c[:owner] == owner}
+        end
+
+        def name
+          File.join("/dev/",@device)
+        end
+
+        def model
+          @node[:block_device][@device][:model] || "Unknown"
+        end
+
+        def removable
+          @node[:block_device][@device][:removable] != "0"
+        end
+
+        def size
+          (@node[:block_device][@device][:size] || 0).to_i
+        end
+
+        def state
+          @node[:block_device][@device][:state] || "Unknown"
+        end
+
+        def vendor
+          @node[:block_device][@device][:vendor] || "NA"
+        end
+        
+        def owner
+          (@node[:crowbar_wall][:claimed_disks][self.unique_name] rescue "")
+        end
+
+        def usage
+          Chef::Log.error("Usage method for disks is deprecated!  Please update your code to use owner")
+          self.owner
+        end
+
+        def fixed
+          # This needs to be kept in sync with the number_of_drives method in
+          # node_object.rb in the Crowbar framework.
+          @device =~ /^[hsv]d/ && !removable
+        end
+
+        def <=>(other)
+          self.name <=> other.name
+        end
+
+        def unique_name
+          # SCSI device ids are likely to be more stable than hardware
+          # paths to a device, and both are more stable than by-uuid,
+          # which is actually a filesystem attribute.
+          ["by-id","by-path"].each do |n|
+            path = File.join("/dev/disk",n)
+            next unless File.directory?(path)
+            Dir.entries(path).each do |p|
+              link = File.join(path,p)
+              next unless File.symlink?(link)
+              Chef::Log.debug("Considering #{link} for #{@device}")
+              next unless File.readlink(link).split("/")[-1] == @device
+              # We found our most unique name.
+              Chef::Log.debug("Using #{link} for #{@device}")
+              return link
+            end
+          end
+          # I hope the actual device name won't change, but it likely will.
+          Chef::Log.debug("Could not find better name than #{name}")
+          name
+        end
+
+        def claimed?
+          @node[:crowbar_wall][:claimed_disks][self.unique_name] rescue nil
+        end
+        
+        def claim(owner)
+          saver = {}
+          saver[:owner]=owner
+          @node[:crowbar_wall] ||= Mash.new
+          @node[:crowbar_wall][:claimed_disks] ||= Mash.new
+          k = self.unique_name
+          if (@node[:crowbar_wall][:claimed_disks][k] rescue nil)
+            return @node[:crowbar_wall][:claimed_disks][k] == saver
+          end
+          Chef::Log.info("Claiming #{k} for #{owner}")
+          @node[:crowbar_wall][:claimed_disks][k] = saver
+          @node.save
+          true
+        end
+
+        def release(owner)
+          k = self.unique_name
+          Chef::Log.info("Releasing #{k} from #{owner}")
+          return false unless (@node[:crowbar_wall][:claimed_disks][k] rescue "") == owner
+          @node[:crowbar_wall][:claimed_disks][k] = nil
+          @node.save
+          true
         end
 
         def self.size_to_bytes(s)
