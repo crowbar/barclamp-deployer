@@ -78,41 +78,6 @@ class DeployerService < ServiceObject
     end
 
     save_it = false
-    #
-    # At this point, we need to create our resource maps and recommendations.
-    #
-    # This is hard coded for now.  Should be parameter driven one day.
-    # 
-    @logger.debug("Deployer transition: Update the inventory crowbar structures for #{name}")
-    unless node[:block_device].nil? or node[:block_device].empty?
-      node.crowbar["crowbar"] = {} if node.crowbar["crowbar"].nil?
-      node.crowbar["crowbar"]["disks"] = {} 
-      node[:block_device].each do |disk, data|
-        # XXX: Make this into a config map one day.
-        next if disk.start_with?("ram")
-        next if disk.start_with?("sr")
-        next if disk.start_with?("loop")
-        next if disk.start_with?("dm")
-        next if disk.start_with?("ndb")
-        next if disk.start_with?("nbd")
-        next if disk.start_with?("md")
-        next if disk.start_with?("sg")
-        next if disk.start_with?("fd")
-
-        next if data[:removable] == 1 or data[:removable] == "1" # Skip cdroms
-
-        # RedHat under KVM reports drives as hdX.  Ubuntu reports them as sdX.
-        disk = disk.gsub("hd", "sd") if disk.start_with?("h") and node[:dmi][:system][:product_name] == "KVM"
-  
-        node.crowbar["crowbar"]["disks"][disk] = data
-
-        # "vda" is presumably unlikely on bare metal, but may be there if testing under KVM
-        node.crowbar["crowbar"]["disks"][disk]["usage"] = "OS" if disk == "sda" || disk == "vda"
-        node.crowbar["crowbar"]["disks"][disk]["usage"] = "Storage" unless disk == "sda" || disk == "vda"
-
-        save_it = true
-      end 
-    end 
 
     # 
     # Decide on the nodes role for the cloud
@@ -129,17 +94,6 @@ class DeployerService < ServiceObject
         node.crowbar["bios"]["bios_update_enable"] = false
         node.crowbar["raid"] ||= {}
         node.crowbar["raid"]["enable"] = false
-        save_it = true
-      end
-
-      node.crowbar["crowbar"]["usage"] = [] if node.crowbar["crowbar"]["usage"].nil?
-      if (node.crowbar["crowbar"]["disks"] and node.crowbar["crowbar"]["disks"].size > 1) and !node.crowbar["crowbar"]["usage"].include?("swift")
-        node.crowbar["crowbar"]["usage"] << "swift"
-        save_it = true
-      end
-
-      if !node.crowbar["crowbar"]["usage"].include?("nova")
-        node.crowbar["crowbar"]["usage"] << "nova"
         save_it = true
       end
 
