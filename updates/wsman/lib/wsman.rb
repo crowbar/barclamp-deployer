@@ -89,7 +89,7 @@ class Crowbar
     filename = WSMAN.certname(@host)
     output = ""
     ret=0
-    stdargs = "-N root/dcim -v -o -j utf-8 -y basic"
+    stdargs = "-N root/dcim -v -V -o -j utf-8 -y basic"
     self.measure_time "WSMAN #{action} #{url} call" do
       cmd = "wsman #{action} #{url} -h #{@host} -P #{@port} -u #{@user} -p #{@password} -c #{filename} #{stdargs} #{args} 2>&1"
       output = %x{#{cmd}}
