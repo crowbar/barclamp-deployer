@@ -35,6 +35,8 @@ class Crowbar
   attr :port
   attr :debug_time
 
+  ENUMERATE_CMD = 'enumerate'
+
   def self.certname(host)
     "/tmp/cer-#{host}.cer"
   end
@@ -209,7 +211,7 @@ class Crowbar
   ## Enumerates instance with EPR and parses keys to construct URI ##
   def find_instance_uri(serviceClass)
     url = "#{WSMAN_URI_NS}/#{serviceClass}"
-    xml = self.command(ENUMERATE_CMD, url, " -m 512 -M epr")
+    xml = self.command("enumerate", url, " -m 512 -M epr")
     selectorStr = "#{url}?"
     content = self.processResponse(xml,'["Body"]["EnumerateResponse"]["Items"]')
     if content
