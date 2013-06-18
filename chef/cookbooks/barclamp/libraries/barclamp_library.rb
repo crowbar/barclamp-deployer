@@ -302,7 +302,25 @@ module BarclampLibrary
           ["by-id","by-path"].each do |n|
             path = File.join("/dev/disk",n)
             next unless File.directory?(path)
-            Dir.entries(path).each do |p|
+            # Pre-sort our directory entries to prefer SCSI-rooted by-ids,
+            # followed by ATA-rooted by-ids, followed by WWN-rooted by-ids,
+            # followed by everything else.
+            ents = Dir.entries(path).sort do |a,b|
+              res = 0
+              a_prefix = a.split("-")[0]
+              b_prefix = b.split("-")[0]
+              case
+              when (a_prefix == "scsi") && (b_prefix != "scsi") then res = -1
+              when (a_prefix != "scsi") && (b_prefix == "scsi") then res = 1
+              when (a_prefix == "ata") && (b_prefix != "ata") then res = -1
+              when (a_prefix != "ata") && (b_prefix == "ata") then res = 1
+              when (a_prefix == "wwn") && (b_prefix != "wwn") then res = -1
+              when (a_prefix != "wwn") && (b_prefix == "wwn") then res = 1
+              else res = a <=> b
+              end
+              res
+            end
+            ents.each do |p|
               link = File.join(path,p)
               next unless File.symlink?(link)
               Chef::Log.debug("Considering #{link} for #{@device}")
@@ -315,6 +333,11 @@ module BarclampLibrary
           # I hope the actual device name won't change, but it likely will.
           Chef::Log.debug("Could not find better name than #{name}")
           name
+        end
+        
+        # unique_name without the /dev/ prefix.
+        def unique_device
+          unique_name[5..-1]
         end
 
         def claimed?
