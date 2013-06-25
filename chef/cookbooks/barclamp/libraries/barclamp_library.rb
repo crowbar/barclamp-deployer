@@ -388,8 +388,25 @@ module BarclampLibrary
           -1
         end
 
-      end
+        def is_ahci
+          Chef::Log.info("Testing whether #{@device} is an ahci dev")
+          res = false
+          d_path = "/sys/block"
+          name = File.join(d_path,@device)
+          return res unless File.symlink?(name)
+          link = File.readlink(name)
+          path = File.expand_path(link,d_path)
+          #get the last pci path
+          p_pci = path.gsub( /(.*[0-9a-f]+:[0-9a-f]+:[0-9a-f]+\.[0-9a-f]+).*/, '\1')
+          #Check if the pci driver is AHCI
+          p_pci_driver = File.join(p_pci,'driver')
+          driver_link =  File.readlink(p_pci_driver)
+          res = true if driver_link =~ /ahci$/
+          Chef::Log.info("#{@device} is an ahci dev") if res
+          res
+        end
 
+      end
     end
   end
 end
