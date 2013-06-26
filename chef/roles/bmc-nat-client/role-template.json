@@ -1,0 +1,44 @@
+{
+  "id": "bc-template-deployer",
+  "description": "Initial classification system for the Crowbar environment ",
+  "attributes": {
+    "deployer": {
+      "use_allocate": true,
+      "ignore_address_suggestions": false,
+      "bios_map": [
+	{ "pattern": ".*-slavenode", "bios_set": "Hadoop", "raid_set": "JBODOnly" },
+	{ "pattern": "(hadoop|clouderamanager)-.*", "bios_set": "Hadoop", "raid_set": "SingleRaid10" },
+        { "pattern": "nova-.*", "bios_set": "Virtualization", "raid_set": "SingleRaid10" },
+        { "pattern": "swift-.*", "bios_set": "Storage", "raid_set": "JBODOnly" },
+        { "pattern": ".*", "bios_set": "Virtualization", "raid_set": "SingleRaid10" }
+      ],
+      "os_map": [ { "pattern": ".*", "install_os": "default_os" } ]
+    }
+  },
+  "roles": {
+      "deployer-client": { "implicit": true, "admin_implicit": true, "jig": "chef" },
+      "bmc-nat-client": { "implicit": true, "jig": "chef" },
+      "bmc-nat-router": { "admin_implicit": true, "jig": "chef" }
+  },
+  "deployment": {
+    "deployer": {
+      "crowbar-revision": 0,
+      "element_states": {
+        "deployer-client": [ "all" ],
+        "bmc-nat-client": [ "all" ],
+        "bmc-nat-router": [ "all" ]
+      },
+      "elements": {},
+      "element_order": [
+        [ "deployer-client", "bmc-nat-router", "bmc-nat-client" ]
+      ],
+      "config": {
+        "environment": "deployer-config-default",
+        "mode": "full",
+        "transitions": true,
+        "transition_list": [ "all" ]
+      }
+    }
+  }
+}
+
