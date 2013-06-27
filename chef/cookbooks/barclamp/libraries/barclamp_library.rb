@@ -40,20 +40,37 @@ module BarclampLibrary
         nil
       end
 
+      # IMPORTANT: This needs to be kept in sync with the bus_index method in
+      # node_object.rb in the Crowbar framework.
       def self.bus_index(bus_order, path)
         return 999 if bus_order.nil?
 
-        dpath = path.split(".")[0].split("/")
+        dpath = path.split("/")
+        # For backwards compatibility with the old busid matching
+        # which just stripped of everything after the first '.'
+        # in the busid
+        dpath_old = path.split(".")[0].split("/")
 
         index = 0
         bus_order.each do |b|
           subindex = 0
-          bs = b.split(".")[0].split("/")
+          bs = b.split("/")
+
+          # When there is no '.' in the busid from the bus_order assume
+          # that we are using the old method of matching busids
+          if b.include?('.')
+            dpath_used=dpath
+            if bs.size != dpath_used.size
+              next
+            end
+          else
+            dpath_used=dpath_old
+          end
 
           match = true
           bs.each do |bp|
-            break if subindex >= dpath.size
-            match = false if bp != dpath[subindex]
+            break if subindex >= dpath_used.size
+            match = false if bp != dpath_used[subindex]
             break unless match
             subindex = subindex + 1
           end
@@ -62,7 +79,7 @@ module BarclampLibrary
           index = index + 1
         end
 
-        999 
+        999
       end
 
       def self.sort_ifs(map, bus_order)
