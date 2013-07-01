@@ -14,7 +14,7 @@
 #
 class BarclampImportDeployer < ActiveRecord::Migration
   def up
-    Barclamp.import_1x 'deployer'
+    Barclamp.import 'deployer'
   end
 
   def down
