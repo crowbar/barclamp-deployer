@@ -112,8 +112,8 @@ class DeployerService < ServiceObject
 
       @logger.debug("Deployer transition: Done Allocate admin address for #{name} boot file:#{boot_ip_hex}")
 
-      # If we are the admin node, we may need to add a vlan bmc address.
       if node.admin?
+        # If we are the admin node, we may need to add a vlan bmc address.
         # Add the vlan bmc if the bmc network and the admin network are not the same.
         # not great to do it this way, but hey.
         admin_net = ProposalObject.find_data_bag_item "crowbar/admin_network"
@@ -123,6 +123,18 @@ class DeployerService < ServiceObject
           result = ns.allocate_ip("default", "bmc_vlan", "host", name)
           @logger.error("Failed to allocate bmc_vlan address for: #{node.name}: #{result[0]}") if result[0] != 200
           @logger.debug("Deployer transition: Done Allocate bmc_vlan address for #{name}")
+        end
+
+        # Allocate the bastion network ip for the admin node if a bastion
+        # network is defined in the network proposal
+        bastion_net = ProposalObject.find_data_bag_item "crowbar/bastion_network"
+        unless bastion_net.nil?
+          result = ns.allocate_ip("default", "bastion", range, name)
+          if result[0] != 200
+            @logger.error("Failed to allocate bastion address for: #{node.name}: #{result[0]}")
+          else
+            @logger.debug("Allocated bastion address: #{result[1]["address"]} for the admin node.")
+          end
         end
       end
 
