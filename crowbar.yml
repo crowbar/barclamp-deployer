@@ -21,16 +21,20 @@ barclamp:
   copyright: "Dell, Inc 2013"
   api_version: "v2"
   api_version_accepts: "v2"
-  requires:
-    - chef
-  member:
-    - crowbar
 
 crowbar:
-  layout: 1.9
+  layout: 2.0
   order: 10
-  run_order: 10
-  chef_order: 10
+
+roles:
+  - name: bmc-nat-client
+    jig: chef
+  - name: bmc-nat-router
+    jig: chef
+  - name: deployer-client
+    jig: chef
+    flags:
+      - discovery
 
 debs:
   build_pkgs:
