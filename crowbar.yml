@@ -27,12 +27,11 @@ crowbar:
   order: 10
 
 jigs:
-  script:
-  chef:
+  - name: chef
     roles:
-      - bmc-nat-client
-      - bmc-nat-router
-      - deployer-client
+      - name: bmc-nat-client
+      - name: bmc-nat-router
+      - name: deployer-client
 
 debs:
   build_pkgs:
