@@ -1,0 +1,4 @@
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+@reboot root find /etc/sysctl.d/ -type f -print | sort | xargs -r -n1 sysctl -e -q -p
