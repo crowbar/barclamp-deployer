@@ -182,9 +182,11 @@ module BarclampLibrary
           found = if_map["#{speeds[x]}#{if_cnt}"] unless found
         }
         case m[1]
-          when '+': (desired..speeds.length).each(&filter)
-          when '-': desired.downto(0,&filter) 
-          when '?':  
+          when '+'
+            (desired..speeds.length).each(&filter)
+          when '-'
+            desired.downto(0,&filter) 
+          when '?'  
             (desired..speeds.length).each(&filter)
             desired.downto(0,&filter) unless found
           else
