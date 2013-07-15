@@ -21,19 +21,23 @@ Ohai::Config[:plugin_path] << node.ohai.plugin_path
 Chef::Log.info("ohai plugins will be at: #{node.ohai.plugin_path}")
 
 # Make secure execution location for ohai
-d = directory "/var/run/ohai" do
-  owner 'root'
-  group 'root'
-  mode 0700
-  recursive true
-  action :nothing
+unless node[:platform] == "windows"
+  d = directory "/var/run/ohai" do
+    owner 'root'
+    group 'root'
+    mode 0700
+    recursive true
+    action :nothing
+  end
+  d.run_action(:create)
 end
-d.run_action(:create)
 
 d = directory node.ohai.plugin_path do
-  owner 'root'
-  group 'root'
-  mode 0755
+  unless node[:platform] == "windows"
+    owner 'root'
+    group 'root'
+    mode 0755
+  end
   recursive true
   action :nothing
 end
@@ -41,9 +45,11 @@ d.run_action(:create)
 
 rd = remote_directory node.ohai.plugin_path do
   source 'plugins'
-  owner 'root'
-  group 'root'
-  mode 0755
+  unless node[:platform] == "windows"
+    owner 'root'
+    group 'root'
+    mode 0755
+  end
   action :nothing
 end
 rd.run_action(:create)

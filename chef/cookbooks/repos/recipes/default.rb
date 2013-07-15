@@ -80,7 +80,7 @@ if provisioner and states.include?(node[:state])
     end
   end
 
-  if node["platform"] != "suse"
+  if node["platform"] != "suse" and node["platform"] != "windows"
     template "/etc/gemrc" do
       variables(:admin_ip => address, :web_port => web_port)
       mode "0644"
