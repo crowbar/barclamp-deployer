@@ -26,12 +26,13 @@ crowbar:
   layout: 2.0
   order: 10
 
-jigs:
-  - name: chef
-    roles:
-      - name: bmc-nat-client
-      - name: bmc-nat-router
-      - name: deployer-client
+roles:
+  - name: bmc-nat-client
+    jig: chef
+  - name: bmc-nat-router
+    jig: chef
+  - name: deployer-client
+    jig: chef
 
 debs:
   build_pkgs:
