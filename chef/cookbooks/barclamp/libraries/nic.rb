@@ -708,8 +708,8 @@ class ::Nic
       unless self.exists?(parent)
         raise ::ArgumentError.new("Parent #{parent} for #{nic} does not exist")
       end
-      unless (0..4095).member?(vlan)
-        raise ::RangeError.new("#{vlan} must be between 1 and 4095.")
+      unless (1..4094).member?(vlan)
+        raise ::RangeError.new("#{vlan} must be between 1 and 4094.")
       end
       unless ::File.exists?("/sys/module/8021q")
         ::Kernel.system("modprobe 8021q")
