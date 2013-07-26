@@ -688,6 +688,14 @@ class ::Nic
       end
     end
 
+    def parent
+      ::IO.readlines("/proc/net/vlan/config").each do |line|
+        line = line.split('|')
+        next unless line[0].strip == @nic
+        return line[2].strip
+      end
+    end
+
     def destroy
       super
       ::Kernel.system("vconfig rem #{@nic}")
