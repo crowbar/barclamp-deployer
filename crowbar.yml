@@ -33,6 +33,8 @@ roles:
     jig: chef
   - name: deployer-client
     jig: chef
+    flags:
+      - discovery
 
 debs:
   build_pkgs:
