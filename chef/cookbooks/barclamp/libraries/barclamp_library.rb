@@ -234,7 +234,7 @@ module BarclampLibrary
           @vlan = data["vlan"]
           @use_vlan = data["use_vlan"]
           @conduit = data["conduit"]
-          @interface = rintf
+          @interface = data["use_vlan"] ? "#{rintf}.#{data["vlan"]}" : rintf
           @interface_list = interface_list
           @add_bridge = data["add_bridge"]
         end
