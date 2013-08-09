@@ -204,8 +204,7 @@ module BarclampLibrary
 
         return [interface_list[0], interface_list, nil] if interface_list.size == 1
 
-        node["crowbar"]["bond_list"] = {} if (node["crowbar"].nil? or node["crowbar"]["bond_list"].nil?)
-        bond_list = node["crowbar"]["bond_list"]
+        bond_list = node["crowbar"]["bond_list"] || {}
         the_bond = nil
         bond_list.each do |bond, map|
           the_bond = bond if map == interface_list
@@ -213,10 +212,9 @@ module BarclampLibrary
         end
 
         if the_bond.nil?
-          the_bond = "bond#{bond_list.size}"
-          bond_list[the_bond] = interface_list
-          # The rescue nil handles the case where we are looking up a node that isn't us
-          node.save rescue nil  
+          # This should not happen as bond_list is always kept uptodate in
+          # the network::default recipe
+          Chef::Log.error("Unable to find the bond device for the teamed interfaces: #{interface_list.inspect}")
         end
 
         [the_bond, interface_list, team_mode]
@@ -236,7 +234,7 @@ module BarclampLibrary
           @vlan = data["vlan"]
           @use_vlan = data["use_vlan"]
           @conduit = data["conduit"]
-          @interface = rintf
+          @interface = data["use_vlan"] ? "#{rintf}.#{data["vlan"]}" : rintf
           @interface_list = interface_list
           @add_bridge = data["add_bridge"]
         end
