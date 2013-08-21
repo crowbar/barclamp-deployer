@@ -121,7 +121,7 @@ module BarclampLibrary
       def self.get_detected_intfs(node)
         node.automatic_attrs["crowbar_ohai"]["detected"]["network"]
       end
-        
+
       def self.build_node_map(node)
         bus_order = Barclamp::Inventory.get_bus_order(node)
         conduits = Barclamp::Inventory.get_conduits(node)
@@ -166,27 +166,27 @@ module BarclampLibrary
         ans
       end
 
-      ## 
-      # given a map of available interfaces on the local machine, 
+      ##
+      # given a map of available interfaces on the local machine,
       # resolve references form conduit list. The supported reference format is <sign><speed><#> where
       #  - sign is optional, and determines behavior if exact match is not found. + allows speed upgrade, - allows downgrade
       #    ? allows either. If no sign is specified, an exact match must be found.
       #  - speed designates the interface speed. 10m, 100m, 1g and 10g are supported
-      def self.map_if_ref(if_map, ref) 
+      def self.map_if_ref(if_map, ref)
         speeds= %w{10m 100m 1g 10g}
         m= /^([-+?]?)(\d{1,3}[mg])(\d+)$/.match(ref) # [1]=sign, [2]=speed, [3]=count
         if_cnt = m[3]
-        desired = speeds.index(m[2]) 
+        desired = speeds.index(m[2])
         found = nil
-          filter = lambda { |x| 
+          filter = lambda { |x|
           found = if_map["#{speeds[x]}#{if_cnt}"] unless found
         }
         case m[1]
           when '+'
             (desired..speeds.length).each(&filter)
           when '-'
-            desired.downto(0,&filter) 
-          when '?'  
+            desired.downto(0,&filter)
+          when '?'
             (desired..speeds.length).each(&filter)
             desired.downto(0,&filter) unless found
           else
@@ -194,7 +194,7 @@ module BarclampLibrary
           end
           found
       end
-        
+
       def self.lookup_interface_info(node, conduit, intf_to_if_map = nil)
         intf_to_if_map = Barclamp::Inventory.build_node_map(node) if intf_to_if_map.nil?
 
@@ -245,6 +245,7 @@ module BarclampLibrary
       class Disk
         attr_reader :device
         def initialize(node,name)
+          # comes from ohai, and can e.g. "hda", "sda", or "cciss!c0d0"
           @device = name
           @node = node
         end
@@ -261,8 +262,9 @@ module BarclampLibrary
           all(node).select{|d| c = d.claimed?; c != nil && c[:owner] == owner}
         end
 
+        # can be /dev/hda, /dev/sda or /dev/cciss/c0d0
         def name
-          File.join("/dev/",@device)
+          File.join("/dev/",@device.gsub(/!/, "/"))
         end
 
         def model
@@ -284,7 +286,7 @@ module BarclampLibrary
         def vendor
           @node[:block_device][@device][:vendor] || "NA"
         end
-        
+
         def owner
           (@node[:crowbar_wall][:claimed_disks][self.unique_name] rescue "")
         end
@@ -297,7 +299,7 @@ module BarclampLibrary
         def fixed
           # This needs to be kept in sync with the number_of_drives method in
           # node_object.rb in the Crowbar framework.
-          @device =~ /^[hsv]d/ && !removable
+          @device =~ /^([hsv]d|cciss)/ && !removable
         end
 
         def <=>(other)
@@ -308,17 +310,30 @@ module BarclampLibrary
           # SCSI device ids are likely to be more stable than hardware
           # paths to a device, and both are more stable than by-uuid,
           # which is actually a filesystem attribute.
-          ["by-id","by-path"].each do |n|
-            path = File.join("/dev/disk",n)
+          # by-id does not exist on virtio, so we need to fall-back to by-path
+          ["by-id", "by-path"].each do |n|
+            path = File.join("/dev/disk", n)
             next unless File.directory?(path)
-            Dir.entries(path).each do |p|
-              link = File.join(path,p)
-              next unless File.symlink?(link)
-              Chef::Log.debug("Considering #{link} for #{@device}")
-              next unless File.readlink(link).split("/")[-1] == @device
-              # We found our most unique name.
-              Chef::Log.debug("Using #{link} for #{@device}")
-              return link
+            candidates=::Dir.entries(path).sort.select do |m|
+              f =  File.join(path, m)
+              # check if the symlink points to {arbitrary}/(sdX|hdX|cciss/cXdY)
+              File.symlink?(f) && (File.readlink(f).end_with?("/" + @device.gsub(/!/, "/")))
+            end
+            # now select the best candidate
+            # Should be matching the code in provisioner/recipes/bootdisk.rb
+            unless candidates.empty?
+              match = candidates.find{|b|b =~ /^scsi-[a-zA-Z]/} ||
+                candidates.find{|b|b =~ /^scsi-/} ||
+                candidates.find{|b|b =~ /^ata-/} ||
+                candidates.find{|b|b =~ /^cciss-/} ||
+                candidates.first
+
+              unless match.empty?
+                link = File.join(path, match)
+                # We found our most unique name.
+                Chef::Log.debug("Using #{link} for #{@device}")
+                return link
+              end
             end
           end
           # I hope the actual device name won't change, but it likely will.
@@ -329,7 +344,7 @@ module BarclampLibrary
         def claimed?
           @node[:crowbar_wall][:claimed_disks][self.unique_name] rescue nil
         end
-        
+
         def claim(owner)
           saver = {}
           saver[:owner]=owner
