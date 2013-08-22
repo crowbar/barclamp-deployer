@@ -592,8 +592,7 @@ class ::Nic
         link = File.join("#{@nicdir}/brif",i)
         # OVS likes to create links to devices that do not really exist.
         # Skip them.
-        File.symlink?(link) &&
-          File.exists?(File.readlink(link))
+        File.symlink?(link) && File.exists?(File.join(link,File.readlink(link)))
       end.map{|i| ::Nic.new(i)}
     end
 
