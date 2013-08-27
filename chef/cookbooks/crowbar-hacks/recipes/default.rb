@@ -18,7 +18,7 @@
 
 states = [ "ready", "readying", "recovering", "applying" ]
 if states.include?(node[:state])
-  if node["platform"] != "suse"
+  if node["platform"] != "suse" and node["platform"] != "windows"
     # Don't waste time with mlocate or updatedb
     %w{mlocate mlocate.cron updatedb}.each do |f|
       file "/etc/cron.daily/#{f}" do
@@ -85,7 +85,7 @@ def sort_boot_order(bootargs)
 end
 
 # This should really be its own recipe, but...
-if File.exists?("/sys/firmware/efi")
+if node["platform"] != "windows" and File.exists?("/sys/firmware/efi")
   bootargs = Mash.new
   bootargs["Entries"] = Array.new
   IO.popen("efibootmgr -v") do |p|

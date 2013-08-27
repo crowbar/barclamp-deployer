@@ -18,4 +18,9 @@
 #
 
 # FHS location would be /var/lib/chef/ohai_plugins or similar.
-default[:ohai][:plugin_path] = "/etc/chef/ohai_plugins"
+if node[:platform]=="windows"
+ default[:ohai][:plugin_path] = "c:/opscode/chef/embedded/lib/ruby/gems/1.9.1/gems/ohai-6.16.0/lib/ohai/plugins"
+else
+  default[:ohai][:plugin_path] = "/etc/chef/ohai_plugins"
+end
+
