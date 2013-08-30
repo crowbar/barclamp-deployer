@@ -28,13 +28,24 @@ crowbar:
 
 roles:
   - name: bmc-nat-client
-    jig: chef
+    jig: chef-solo
   - name: bmc-nat-router
-    jig: chef
+    jig: chef-solo
   - name: deployer-client
-    jig: chef
+    jig: chef-solo
     flags:
-      - discovery
+      - implicit
+
+attribs:
+  - name: disks
+    description: "The local raw disks that Crowbar has detected"
+    map: 'ohai/crowbar_ohai/disks'
+  - name: all_reservations
+    description: "All reservations against resources on this node"
+    map: 'reservations'
+  - name: disk_reservations
+    description: "All disk reservations against this node."
+    map: 'reservations/disks'
 
 debs:
   build_pkgs:
@@ -50,6 +61,12 @@ rpms:
     build_pkgs:
       - tar
   centos-6.2:
+    build_pkgs:
+      - tar
+  opensuse-12.3:
+    build_pkgs:
+      - tar
+  opensuse-13.1:
     build_pkgs:
       - tar
   build_pkgs:

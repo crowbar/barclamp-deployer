@@ -1,4 +1,4 @@
-# Copyright 2011, Dell
+# Copyright 2013, Dell
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,13 @@
 # limitations under the License.
 #
 
-class Chef::Recipe
-  include BarclampLibrary
+# This recipe is only for use by chef-solo.  It saves all the attributes
+# on a node object to a known location on the filesystem.
+
+ruby_block "Save attributes at the end of run" do
+  block do
+    File.open("/var/chef/node-out.json","w") do |f|
+      f.write(JSON.pretty_generate(node.for_json))
+    end
+  end
 end

@@ -96,10 +96,9 @@ if File.exists?("/sys/firmware/efi")
     end
     bootargs["LastNetBootMac"].chop!
   end
-  node[:crowbar_wall] ||= Mash.new
-  node[:crowbar_wall][:uefi] ||= Mash.new
-  node[:crowbar_wall][:uefi][:boot] = bootargs
-  node.save
+  node.normal[:crowbar_wall] ||= Mash.new
+  node.normal[:crowbar_wall][:uefi] ||= Mash.new
+  node.normal[:crowbar_wall][:uefi][:boot] = bootargs
   bootargs["BootOrder"].each do |e|
     next if bootargs["Entries"][e]["Active"]
     Chef::Log.info("Activating UEFI boot entry #{sprintf('%x',e)}: #{bootargs["Entries"][e]["Description"]}")
@@ -111,7 +110,6 @@ if File.exists?("/sys/firmware/efi")
     ::Kernel.system("efibootmgr -o #{neworder.map{|e|sprintf('%x',e)}.join(',')}")
     bootargs["OldBootOrder"] = bootargs["BootOrder"]
     bootargs["BootOrder"] = neworder
-    node.save
   end
 
 end
