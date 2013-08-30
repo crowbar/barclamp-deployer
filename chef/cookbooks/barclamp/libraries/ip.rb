@@ -246,7 +246,7 @@ class IP
 
     # Return our address in reverse DNS lookup format.
     def reverse
-      "#{to_a.reverse.join('.')}.in-addr.arpa."
+      "#{to_a.reverse.join('.')}.in-addr.arpa"
     end
   end
 
@@ -345,7 +345,7 @@ class IP
         res << '%x' % (bits & 15)
         bits >>= 4
       end
-      res.join('.') + ".ip6.arpa."
+      res.join('.') + ".ip6.arpa"
     end
   end
 end
