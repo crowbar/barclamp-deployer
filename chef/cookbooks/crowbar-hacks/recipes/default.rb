@@ -41,7 +41,7 @@ if states.include?(node[:state])
       owner "root"
       group "root"
       mode "0644"
-      variables(:logfiles => "/opt/dell/crowbar_framework/log/*.log",
+      variables(:logfiles => "/var/log/crowbar/*.log /var/log/crowbar/*.out /var/log/crowbar/chef-client/*.log",
                   :action => "create 644 crowbar crowbar",
                 :postrotate => "/usr/bin/killall -USR1 rainbows")
     end if node[:recipes].include?("crowbar")
