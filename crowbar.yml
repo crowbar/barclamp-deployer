@@ -35,6 +35,7 @@ roles:
     jig: chef
     flags:
       - discovery
+      - bootstrap
 
 debs:
   build_pkgs:
