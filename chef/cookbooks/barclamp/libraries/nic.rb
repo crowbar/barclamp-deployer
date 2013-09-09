@@ -359,9 +359,30 @@ class ::Nic
     Nic.new(File.readlink("#{@nicdir}/brport/bridge").split('/')[-1])
   end
 
+  # Return the ovs virtual switch we are enslaved to, or nil if we are not
+  # port of a ovs switch.
+  def ovs_master
+    # If no ovs tools are installed there's no ovs switch
+    if ::Kernel.system("which ovs-vsctl > /dev/null 2>&1")
+      res = ""
+      ::IO.popen("ovs-vsctl iface-to-br #{@nic} 2> /dev/null") do |f|
+        f.each do |line|
+          # There is only one line of output in case the
+          # interface is enslaved to anything. Otherwise
+          # there is none, or the exit code it != 0
+          res = line.strip
+        end
+      end
+      if $?.success? and not res.empty?
+        return  Nic.new(res)
+      end
+    end
+    return nil
+  end
+
   # Return the interface we are enslaved to, if we are enslaved to something.
   def master
-    self.bond_master || self.bridge_master
+    self.bond_master || self.bridge_master || self.ovs_master
   end
 
   # Figure out all the interfaces we depend on.
