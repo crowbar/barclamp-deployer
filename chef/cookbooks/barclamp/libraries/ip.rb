@@ -1,7 +1,25 @@
+# Copyright 2013, Dell 
+# 
+# Licensed under the Apache License, Version 2.0 (the "License"); 
+# you may not use this file except in compliance with the License. 
+# You may obtain a copy of the License at 
+# 
+#  http://www.apache.org/licenses/LICENSE-2.0 
+# 
+# Unless required by applicable law or agreed to in writing, software 
+# distributed under the License is distributed on an "AS IS" BASIS, 
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+# See the License for the specific language governing permissions and 
+# limitations under the License. 
+# 
+#
+
 # Base class to represent IP4 and IP6 addresses.
 # This class winds up delegating most of its work to
 # the IP::IP4 and IP::IP6 classes, which cannnot be directly created.
 # We strongly prefer to use CIDR address notation.
+# We use this in preference to IPAddr because IPAddr
+# has a few non-CIDR assumptions.
 class IP
   include Comparable
   protected
@@ -150,6 +168,14 @@ class IP
     self
   end
 
+  def v4?
+    false
+  end
+
+  def v6?
+    false
+  end
+
   # Anything else, assume we want mathy goodness.
   def method_missing(m,*args,&block)
     self.class.new(case
@@ -251,6 +277,10 @@ class IP
 
     def reachable?
       system("ping -c 1 -w 1 -q #{self.addr}")
+    end
+
+    def v4?
+      true
     end
 
   end
@@ -355,6 +385,10 @@ class IP
 
     def reachable?
       system("ping6 -c 1 -w 1 -q #{self.addr}")
+    end
+
+    def v6?
+      true
     end
 
   end
