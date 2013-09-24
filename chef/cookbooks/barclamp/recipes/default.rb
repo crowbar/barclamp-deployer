@@ -16,15 +16,3 @@
 class Chef::Recipe
   include BarclampLibrary
 end
-
-unless (node[:crowbar_wall][:provisioner_server] rescue nil)
-  provisioners = search(:node, "roles:provisioner-server")
-  if provisioners && provisioners[0]
-    provisioner = provisioners[0]
-    if provisioner[:provisioner] && provisioner[:provisioner][:web_port]
-      web_port = provisioner[:provisioner][:web_port]
-      node[:crowbar_wall] ||= Mash.new
-      node[:crowbar_wall][:provisioner_server] = "http://#{provisioner.address.addr}:#{web_port}"
-    end
-  end
-end

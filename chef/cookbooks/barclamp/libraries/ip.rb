@@ -1,7 +1,25 @@
+# Copyright 2013, Dell 
+# 
+# Licensed under the Apache License, Version 2.0 (the "License"); 
+# you may not use this file except in compliance with the License. 
+# You may obtain a copy of the License at 
+# 
+#  http://www.apache.org/licenses/LICENSE-2.0 
+# 
+# Unless required by applicable law or agreed to in writing, software 
+# distributed under the License is distributed on an "AS IS" BASIS, 
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+# See the License for the specific language governing permissions and 
+# limitations under the License. 
+# 
+#
+
 # Base class to represent IP4 and IP6 addresses.
 # This class winds up delegating most of its work to
 # the IP::IP4 and IP::IP6 classes, which cannnot be directly created.
 # We strongly prefer to use CIDR address notation.
+# We use this in preference to IPAddr because IPAddr
+# has a few non-CIDR assumptions.
 class IP
   include Comparable
   protected
@@ -74,9 +92,11 @@ class IP
   # Bootstrap the rest of the methods Comparable provides.
   def <=>(other)
     other = ::IP.coerce(other)
-    raise ArgumentError.new("#{other} is not the same class as #{self}") unless
-      self.class == other.class
-    @address <=> other.address
+    case
+    when v6? && other.v4? then -1
+    when other.v6? && v4? then 1
+    else @address <=> other.address
+    end
   end
 
   # We will need this for mathy operators.
@@ -148,6 +168,14 @@ class IP
       raise ArgumentError.new("#{address} cannot be coerced into an IP address")
     end
     self
+  end
+
+  def v4?
+    false
+  end
+
+  def v6?
+    false
   end
 
   # Anything else, assume we want mathy goodness.
@@ -248,6 +276,15 @@ class IP
     def reverse
       "#{to_a.reverse.join('.')}.in-addr.arpa"
     end
+
+    def reachable?
+      system("ping -c 1 -w 1 -q #{self.addr}")
+    end
+
+    def v4?
+      true
+    end
+
   end
 
   class IP6 < IP
@@ -347,5 +384,14 @@ class IP
       end
       res.join('.') + ".ip6.arpa"
     end
+
+    def reachable?
+      system("ping6 -c 1 -w 1 -q #{self.addr}")
+    end
+
+    def v6?
+      true
+    end
+
   end
 end
