@@ -609,8 +609,12 @@ class ::Nic
   # Base class for a bridge.  We handle most bridge manipulation via brctl.
   class ::Nic::Bridge < ::Nic
     def slaves
-      ::Dir.entries("#{@nicdir}/brif").reject do |i|
-        i == '.' || i == '..'
+      ::Dir.entries("#{@nicdir}/brif").select do |i|
+        link = File.join("#{@nicdir}/brif",i)
+        # OVS likes to create links to devices that do not really exist.
+        # Skip them.
+        File.symlink?(link) &&
+          File.exists?(File.readlink(link))
       end.map{|i| ::Nic.new(i)}
     end
 

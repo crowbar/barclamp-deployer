@@ -27,17 +27,15 @@ module BarclampLibrary
       end
 
       def self.get_network_by_type(node, type)
-        node[:crowbar][:network].each do |net, data|
-          next if data[:usage] != type
-          intf, interface_list, tm = Barclamp::Inventory.lookup_interface_info(node, data["conduit"])
-          return Network.new(net, data, intf, interface_list)
-        end unless node[:crowbar][:network].nil?
-        node[:crowbar][:network].each do |net, data|
-          next if data[:usage] != "admin"
-          intf, interface_list, tm = Barclamp::Inventory.lookup_interface_info(node, data["conduit"])
-          return Network.new(net, data, intf, interface_list)
-        end unless node[:crowbar][:network].nil?
-        nil
+        unless node[:crowbar][:network].nil?
+          [type, "admin"].each do |usage|
+            if found = node[:crowbar][:network].find {|net, data| data[:usage] == usage}
+              net, data = found
+              intf, interface_list, tm = Barclamp::Inventory.lookup_interface_info(node, data["conduit"])
+              return Network.new(net, data, intf, interface_list)
+            end
+          end
+        end
       end
 
       # IMPORTANT: This needs to be kept in sync with the bus_index method in
