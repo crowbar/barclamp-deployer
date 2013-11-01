@@ -1,34 +1,26 @@
+# Crowbar Documentation README
 
-Welcome to the Crowbar project
+_This is not the documentation you are looking for, it is a pointer to the real documentation_
 
-The code and documentation is distributed under the Apache 2 license (http://www.apache.org/licenses/LICENSE-2.0.html). Contributions back to the source are encouraged.
+## Looking for Crowbar Resources?
 
-Crowbar was developed by the Dell CloudEdge Solutions Team (http://dell.com/openstack) as a OpenStack installer (http://OpenStack.org) but has evolved as a much broader function tool. It is a wrapper for Opscode Chef Server (http://opscode.com)
+[The Crowbar website](http://crowbar.github.io) has links to all information and is our recommended starting place.
 
-Much of the design information about Crowbar has been published on Rob Hirschfeld's Blog (http://robhirschfeld.com).
+## Specific Crowbar Documentation 
 
-This wiki maintains information about the operation of Crowbar. Documentation for users and deployment will be committed into the Git repo. Intermediate updates are likely to surface in the wiki.
+We track Crowbar documentation with the code so that we can track versions of documentation with the code.
 
-Please consult the release notes for known issues
+Here are commonly requested references:
 
-To build your own copy of Crowbar, consult the readme (https://github.com/dellcloudedge/crowbar/blob/master/README.build) in the crowbar repos. Some important notes about the build process: 
-* Build process has been tested on Ubuntu 10.10 and CentOS
+* [Getting Started Guide](https://github.com/crowbar/barclamp-crowbar/tree/master/doc/gettingstarted.md)
+* [User Resources](https://github.com/crowbar/barclamp-crowbar/tree/master/doc/userguide.md)
+* [Developer Resources](https://github.com/crowbar/barclamp-crowbar/tree/master/doc/devguide.md)
+* [Crowbar Release Management](https://github.com/crowbar/barclamp-crowbar/tree/master/doc/releases.md)
 
-With that said, from a fresh install off the crowbar-dev.iso, the next steps are:
+> You may need to look in subdirectories under the links below for additional details.
 
-0: Boot using the ISO and it will setup Ubuntu 10.10 and stage Crowbar for install
-1: Log in as crowbar/crowbar (Ubuntu) or root/crowbar (Redhat)
-2: sudo su - root
-3: cd /tftpboot/ubuntu_dvd/extra (Ubuntu) or cd /tftpboot/redhat_dvd/extra (Redhat)
-4: ./install admin.crowbar.org (or whatever FQDN you want your admin node to have).
+## Background
+Crowbar documentation is distributed into multiple places under the /doc directory of each Crowbar module (aka "barclamps").  When the modules are installed, Crowbar combines all the /doc directories into a master documentation set.  These directories are structured into subdirectories for general topics.  This structure is common across all barclamps in the [Crowbar project](https://github.com/crowbar/)
 
-Note: if the install did not work, you can try "sudo chef-client" and that may fix issues by repeating the last part of the installation.
-
-The rest of Crowbar will then install.  Unless you change the networking defaults, you can access the Crowbar server:
-* Crowbar UI on http://192.168.124.10:3000.  (crowbar/crowbar)
-* Chef UI on http://192.168.124.10:4040.  (admin/password)
-* Nagios on http://192.168.124.10/nagios3.  (nagiosadmin/password)
-* Ganglia on http://192.168.124.10/ganglia.  (nagiosadmin/password)
-
-We are working to make this wiki complete, please feel free to update content.
+> Please, do NOT add documentation in locations besides /doc!  If necessary, expand this README to include pointers to important /doc information.
 
