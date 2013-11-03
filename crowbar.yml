@@ -34,8 +34,7 @@ roles:
   - name: deployer-client
     jig: chef
     flags:
-      - discovery
-      - bootstrap
+      - implicit
 
 debs:
   build_pkgs:
