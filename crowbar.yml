@@ -28,11 +28,11 @@ crowbar:
 
 roles:
   - name: bmc-nat-client
-    jig: chef
+    jig: chef-solo
   - name: bmc-nat-router
-    jig: chef
+    jig: chef-solo
   - name: deployer-client
-    jig: chef
+    jig: chef-solo
     flags:
       - implicit
 
