@@ -52,6 +52,12 @@ rpms:
   centos-6.2:
     build_pkgs:
       - tar
+  opensuse-12.3:
+    build_pkgs:
+      - tar
+  opensuse-13.1:
+    build_pkgs:
+      - tar
   build_pkgs:
     - flex
     - bison
