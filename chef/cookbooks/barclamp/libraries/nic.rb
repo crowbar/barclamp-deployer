@@ -83,6 +83,14 @@ class ::Nic
       ::File.exists?("/sys/class/net/#{nic}/bridge/bridge_id")
   end
 
+  def self.ovs_bridge?(nic)
+    nic.kind_of?(::Nic::OvsBridge) or
+      # If no ovs tools are installed there's no ovs switch
+      if ::Kernel.system("which ovs-vsctl > /dev/null 2>&1")
+        ::Kernel.system("ovs-vsctl br-exists #{nic}")
+      end
+  end
+
   def self.bond?(nic)
     nic.kind_of?(::Nic::Bond) or
       ::File.exists?("/sys/class/net/#{nic}/bonding/slaves")
@@ -449,6 +457,9 @@ class ::Nic
     elsif bridge?(nic)
       o = ::Nic::Bridge.allocate
       logstr = "Returning new bridge interface"
+    elsif ovs_bridge?(nic)
+      o = ::Nic::OvsBridge.allocate
+      logstr = "Returning new ovs-bridge interface"
     elsif bond?(nic)
       o = ::Nic::Bond.allocate
       logstr = "Returning new bond interface"
@@ -698,6 +709,30 @@ class ::Nic
         sleep(0.1)
       end
       raise ::ArgumentError.new("Unable to create new bridge #{nic}")
+    end
+  end
+
+  # Base class for an ovs-bridge. This is just enough to be able to 
+  # implement the remove_slave call
+  class ::Nic::OvsBridge < ::Nic
+    def slaves
+      ports = []
+      ::IO.popen("ovs-vsctl list-ports #{@nic} 2> /dev/null") do |f|
+        f.each do |line|
+          port = line.strip
+          ports << port if ::File.directory?("/sys/class/net/#{port}")
+        end
+      end
+      ports.map{|i| ::Nic.new(i)}
+    end
+
+    def remove_slave(slave)
+      slave = self.class.coerce(slave)
+      unless self.slaves.member?(slave)
+        raise ::ArgumentError.new("#{slave} is not a member of bridge #{@nic}")
+      end
+      ::Kernel.system("ovs-vsctl del-port #{@nic} #{slave}")
+      slave.down
     end
   end
 
