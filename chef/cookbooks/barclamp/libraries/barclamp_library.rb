@@ -289,6 +289,10 @@ module BarclampLibrary
           (@node[:crowbar_wall][:claimed_disks][self.unique_name] rescue "")
         end
 
+        def cinder_volume
+          @node[:block_device][@device][:vendor] == "cinder" && @node[:block_device][@device][:model] =~ /^volume-/
+        end
+
         def usage
           Chef::Log.error("Usage method for disks is deprecated!  Please update your code to use owner")
           self.owner
@@ -297,7 +301,7 @@ module BarclampLibrary
         def fixed
           # This needs to be kept in sync with the number_of_drives method in
           # node_object.rb in the Crowbar framework.
-          @device =~ /^([hsv]d|cciss)/ && !removable
+          @device =~ /^([hsv]d|cciss)/ && !removable && !cinder_volume
         end
 
         def <=>(other)
