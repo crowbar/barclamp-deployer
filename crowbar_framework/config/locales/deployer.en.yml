@@ -1,0 +1,5 @@
+en:
+  barclamp:
+    deployer:
+      edit_attributes:
+        use_allocate: Require manual allocation of newly discovered nodes
