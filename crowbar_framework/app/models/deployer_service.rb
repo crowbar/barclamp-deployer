@@ -16,8 +16,8 @@
 class DeployerService < ServiceObject
 
   def initialize(thelogger)
+    super(thelogger)
     @bc_name = "deployer"
-    @logger = thelogger
   end
 
   def create_proposal
