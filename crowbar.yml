@@ -36,6 +36,11 @@ roles:
     flags:
       - implicit
 
+attribs:
+  - name: disks
+    description: "The local raw disks that Crowbar has detected"
+    map: 'ohai/crowbar_ohai/disks'
+
 debs:
   build_pkgs:
     - build-essential

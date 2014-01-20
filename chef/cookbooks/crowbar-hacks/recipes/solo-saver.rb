@@ -19,7 +19,7 @@
 ruby_block "Save attributes at the end of run" do
   block do
     File.open("/var/chef/node-out.json","w") do |f|
-      JSON.dump(node.for_json,f)
+      f.write(JSON.pretty_generate(node.for_json))
     end
   end
 end
