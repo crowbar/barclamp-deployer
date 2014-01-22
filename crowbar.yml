@@ -52,7 +52,13 @@ rpms:
   redhat-6.4:
     build_pkgs:
       - tar
+  redhat-6.5:
+    build_pkgs:
+      - tar
   centos-6.4:
+    build_pkgs:
+      - tar
+  centos-6.5:
     build_pkgs:
       - tar
   build_pkgs:
