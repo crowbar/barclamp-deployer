@@ -253,11 +253,15 @@ module BarclampLibrary
         end
 
         def self.unclaimed(node)
-          all(node).select{|d|d.fixed && !d.claimed?}
+          all(node).select do |d|
+            d.fixed and not d.claimed?
+          end
         end
 
         def self.claimed(node,owner)
-          all(node).select{|d| c = d.claimed?; c != nil && c[:owner] == owner}
+          all(node).select do |d|
+            d.claimed? and d.owner == owner
+          end
         end
 
         # can be /dev/hda, /dev/sda or /dev/cciss/c0d0
@@ -286,7 +290,7 @@ module BarclampLibrary
         end
 
         def owner
-          (@node[:crowbar_wall][:claimed_disks][self.unique_name] rescue "")
+          (@node[:crowbar_wall][:claimed_disks][self.unique_name][:owner] rescue "")
         end
 
         def cinder_volume
@@ -344,30 +348,41 @@ module BarclampLibrary
         end
 
         def claimed?
-          @node[:crowbar_wall][:claimed_disks][self.unique_name] rescue nil
+          @node[:crowbar_wall][:claimed_disks].has_key? self.unique_name
+        rescue
+          false
         end
 
         def claim(owner)
-          saver = {}
-          saver[:owner]=owner
+          k = self.unique_name
+
           @node[:crowbar_wall] ||= Mash.new
           @node[:crowbar_wall][:claimed_disks] ||= Mash.new
-          k = self.unique_name
-          if (@node[:crowbar_wall][:claimed_disks][k] rescue nil)
-            return @node[:crowbar_wall][:claimed_disks][k] == saver
+
+          if (@node[:crowbar_wall][:claimed_disks][k][:owner] rescue nil)
+            return @node[:crowbar_wall][:claimed_disks][k][:owner] == owner
           end
+
           Chef::Log.info("Claiming #{k} for #{owner}")
-          @node[:crowbar_wall][:claimed_disks][k] = saver
+
+          @node[:crowbar_wall][:claimed_disks][k] = { :owner => owner }
           @node.save
+
           true
         end
 
         def release(owner)
           k = self.unique_name
+
+          unless (@node[:crowbar_wall][:claimed_disks][k][:owner] rescue "") == owner
+            return false
+          end
+
           Chef::Log.info("Releasing #{k} from #{owner}")
-          return false unless (@node[:crowbar_wall][:claimed_disks][k] rescue "") == owner
-          @node[:crowbar_wall][:claimed_disks][k] = nil
+
+          @node[:crowbar_wall][:claimed_disks].delete k
           @node.save
+
           true
         end
 
