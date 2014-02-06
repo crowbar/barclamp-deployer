@@ -67,7 +67,7 @@ class DeployerService < ServiceObject
 
       # Make sure that the node can be accessed by knife ssh or ssh
       if ["reset","reinstall","update","delete"].member?(state)
-        system("sudo rm /root/.ssh/known_hosts")
+        system("sudo rm -f /root/.ssh/known_hosts")
       end
     end
 
