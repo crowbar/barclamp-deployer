@@ -348,39 +348,40 @@ module BarclampLibrary
         end
 
         def claimed?
-          @node[:crowbar_wall][:claimed_disks].has_key? self.unique_name
+          not @node[:crowbar_wall][:claimed_disks][self.unique_name][:owner].to_s.empty?
         rescue
           false
         end
 
-        def claim(owner)
+        def claim(new_owner)
           k = self.unique_name
 
           @node[:crowbar_wall] ||= Mash.new
           @node[:crowbar_wall][:claimed_disks] ||= Mash.new
 
-          if (@node[:crowbar_wall][:claimed_disks][k][:owner] rescue nil)
-            return @node[:crowbar_wall][:claimed_disks][k][:owner] == owner
+          unless owner.to_s.empty?
+            return owner == new_owner
           end
 
-          Chef::Log.info("Claiming #{k} for #{owner}")
+          Chef::Log.info("Claiming #{k} for #{new_owner}")
 
-          @node[:crowbar_wall][:claimed_disks][k] = { :owner => owner }
+          @node[:crowbar_wall][:claimed_disks][k] ||= {}
+          @node[:crowbar_wall][:claimed_disks][k][:owner] = new_owner
           @node.save
 
           true
         end
 
-        def release(owner)
+        def release(old_owner)
           k = self.unique_name
 
-          unless (@node[:crowbar_wall][:claimed_disks][k][:owner] rescue "") == owner
+          unless owner == old_owner
             return false
           end
 
-          Chef::Log.info("Releasing #{k} from #{owner}")
+          Chef::Log.info("Releasing #{k} from #{old_owner}")
 
-          @node[:crowbar_wall][:claimed_disks].delete k
+          @node[:crowbar_wall][:claimed_disks][k][:owner] = nil
           @node.save
 
           true
@@ -411,5 +412,3 @@ module BarclampLibrary
     end
   end
 end
-
-
