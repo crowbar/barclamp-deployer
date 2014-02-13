@@ -40,6 +40,12 @@ attribs:
   - name: disks
     description: "The local raw disks that Crowbar has detected"
     map: 'ohai/crowbar_ohai/disks'
+  - name: all_reservations
+    description: "All reservations against resources on this node"
+    map: 'reservations'
+  - name: disk_reservations
+    description: "All disk reservations against this node."
+    map: 'reservations/disks'
 
 debs:
   build_pkgs:
