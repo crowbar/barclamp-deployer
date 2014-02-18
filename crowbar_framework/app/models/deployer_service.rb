@@ -49,7 +49,7 @@ class DeployerService < ServiceObject
         return [404, "Failed to add role to node"]
       end
       @logger.debug("Deployer transition: leaving #{name} for #{state}: discovering passed.")
-      return [200, NodeObject.find_node_by_name(name).to_hash ]
+      return [200, { :name => name } ]
     end
 
     #
@@ -74,7 +74,7 @@ class DeployerService < ServiceObject
     # if delete - clear out stuff
     if state == "delete"
       # Do more work here - one day.
-      return [200, node.to_hash ]
+      return [200, { :name => name } ]
     end
 
     save_it = false
@@ -154,7 +154,7 @@ class DeployerService < ServiceObject
       node.save
 
       @logger.debug("Deployer transition: leaving discovered for #{name} EOF")
-      return [200, node.to_hash ]
+      return [200, { :name => name } ]
     end
 
     #
@@ -193,7 +193,7 @@ class DeployerService < ServiceObject
     node.save if save_it
 
     @logger.debug("Deployer transition: leaving state for #{name} EOF")
-    return [200, node.to_hash ]
+    return [200, { :name => name } ]
   end
 
 end
