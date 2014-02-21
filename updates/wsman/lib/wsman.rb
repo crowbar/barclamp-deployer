@@ -36,6 +36,7 @@ class Crowbar
   attr :debug_time
 
   ENUMERATE_CMD = 'enumerate'
+  INVOKE_CMD    = 'invoke'
 
   def self.certname(host)
     "/tmp/cer-#{host}.cer"
@@ -677,6 +678,111 @@ class Crowbar
           ]
         end
     true
+  end
+
+  ## Utility method shared by the BIOS and RAID barclamp  ##
+  ## Return status and reboot required flag to the caller ##
+  ## Handle the following two cases                       ##
+  ## 1: There is a boot mode transition and the new boot  ##
+  ## mode has disabled boot sources                       ##
+  ## This happens transitioning from BIOS to UEFI usually ##
+  ##                                                      ##
+  ## 2: Already in UEFI boot mode and manually brought    ##
+  ## into CB by selecting the NIC in the boot manager     ##
+  ########################################################## 
+  def check_and_handle_boot_sources()
+    retStatus    = true
+    rebootReq    = false
+    return_val   = nil
+    current_mode = nil
+    pending_mode = nil
+    boot_sources = []
+    redo_sources = []
+    enable_srcs  = []
+    boot_mode    = "BIOS"
+    url          = nil
+    inputFile    = nil
+    cmd          = "#{INVOKE_CMD} -a #{CHANGE_BOOT_ORDER_CMD}"
+    boot_cfg_uri = "#{WSMAN_URI_NS}/DCIM_BootConfigSetting?InstanceID="    
+    begin
+      current_mode, pending_mode = get_current_and_pending_bootmode()
+      puts "DBG: Curr boot mode = #{current_mode}. Pending boot mode = #{pending_mode}"
+      if (pending_mode and !pending_mode.is_a?(Hash))
+        if (pending_mode == "Uefi")
+          boot_sources = get_uefi_boot_source_settings()
+          boot_mode    = "UEFI"
+          url       = "#{boot_cfg_uri}UEFI"
+          inputFile = "/tmp/#{CHANGE_BOOT_ORDER_CMD}_UEFI.xml"
+        else
+          boot_sources = get_bios_boot_source_settings()
+          url       = "#{boot_cfg_uri}IPL"
+          inputFile = "/tmp/#{CHANGE_BOOT_ORDER_CMD}_IPL.xml"
+        end
+      else
+        puts "DBG: no pending boot mode...make sure current boot mode sources are enabled"
+        if (current_mode and !current_mode.is_a?(Hash) and current_mode == "Uefi")
+          puts "DBG: Obtaining uefi boot mode settings - current boot mode"
+          boot_sources = get_uefi_boot_source_settings()
+          boot_mode    = "UEFI"
+          url       = "#{boot_cfg_uri}UEFI"
+          inputFile = "/tmp/#{CHANGE_BOOT_ORDER_CMD}_UEFI.xml"
+        else
+          puts "DBG: either current boot mode is null or not uefi.."
+        end
+      end
+      ## Check if we actually have any boot sources to work with
+      if (boot_sources and boot_sources.length > 0)
+        redo_sources, enable_srcs = set_boot_sources(boot_mode, boot_sources, true)
+        ## Check if we need to enable any NICs as boot sources...
+        if (enable_srcs and enable_srcs.length > 0)
+          puts "DBG: Need to enable the following boot srcs #{enable_srcs.inspect}"
+          return_val = enable_boot_sources(enable_srcs)
+          if (return_val == RETURN_VAL_OK)
+            puts "DBG: Setting reboot flag to true...enabled boot source NICs"
+            rebootReq = true if (!rebootReq)
+          else
+            puts "DBG: failed to enable boot sources"
+            retStatus = false if (retStatus)
+            rebootReq = false if (rebootReq)
+          end
+        else
+          puts "DBG: No boot sources need to be enabled..."
+        end
+
+        ## Check if we really need to rearrange boot sources
+        if (redo_sources and redo_sources.length > 0 and !redo_sources.eql?(boot_sources))
+          writeBootSourceFile(inputFile, redo_sources)
+          xml = command(cmd,url , "-J #{inputFile}")
+          if (xml)
+            return_val   = returnValue(xml,CHANGE_BOOT_ORDER_CMD)
+            if (return_val == RETURN_VAL_OK)
+              puts "DBG: Setting reboot flag to true...changed boot order of boot sources"
+              rebootReq = true if (!rebootReq)
+            else
+              puts "DBG: Failed to set boot order of boot sources...#{xml}"
+              retStatus = false if (retStatus)
+              ## Not resetting rebooReq here ...if it was set to enable boot sources
+              ## then we leave it as such even if ordering failed...
+            end
+          else
+            puts "No data returned from ChangeBootOrderByInstanceID command..Exiting"
+            retStatus = false if (retStatus)
+          end
+        else
+          puts "Reordered sources is nil or matches original boot sources"
+        end
+      else
+        puts "No boot sources enumerated on system..Exiting"
+        rebootReq = false if (rebootReq)
+        retStatus = false if (retStatus)
+      end
+    rescue Exception => e
+      ## If we did set the reboot flag on one operation at least we ought to ensure the
+      ## caller does invoke the job / a restart
+      puts "DBG: Caught exception manipulating boot order/sources...#{e.message}"
+      retStatus = false
+    end
+    [retStatus, rebootReq]
   end
 
   ## Utility methods culled from xml_util.rb
