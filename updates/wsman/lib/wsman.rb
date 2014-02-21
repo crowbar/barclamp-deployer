@@ -36,6 +36,7 @@ class Crowbar
   attr :debug_time
 
   ENUMERATE_CMD = 'enumerate'
+  INVOKE_CMD    = 'invoke'
 
   def self.certname(host)
     "/tmp/cer-#{host}.cer"
@@ -754,6 +755,7 @@ class Crowbar
         end
 
         ## Check if we really need to rearrange boot sources
+
         if (redo_sources and redo_sources.length > 0 and !redo_sources.eql?(boot_src_ids))
           writeBootSourceFile(inputFile, redo_sources)
           xml = command(cmd,url , "-J #{inputFile}")
