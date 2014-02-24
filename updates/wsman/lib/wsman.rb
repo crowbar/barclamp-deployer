@@ -432,7 +432,7 @@ class Crowbar
   ## against all hardware config etc                                    ##
   def create_targeted_config_job(svc_class_uri, fqdd)
     puts "Creating targeted config job..."
-    cmd = "#{INVOKE_CMD} -a CreateTargetedConfigJob -k Target=#{fqdd} -k ScheduledStartTime=TIME_NOW -k RebootJobType=1"
+    cmd = "#{INVOKE_CMD} -a CreateTargetedConfigJob -k Target=#{fqdd} -k ScheduledStartTime=TIME_NOW -k RebootJobType=3"
     output = self.command(cmd, svc_class_uri)
     returnVal = self.returnValue(output,"CreateTargetedConfigJob")
     if returnVal.to_i == RETURN_CFG_JOB
@@ -697,6 +697,7 @@ class Crowbar
     current_mode = nil
     pending_mode = nil
     boot_sources = []
+    boot_src_ids = []
     redo_sources = []
     enable_srcs  = []
     boot_mode    = "BIOS"
@@ -732,6 +733,10 @@ class Crowbar
       end
       ## Check if we actually have any boot sources to work with
       if (boot_sources and boot_sources.length > 0)
+        boot_sources.each do |bss|
+          boot_src_ids << bss['InstanceID']
+        end
+        puts "DBG: original boot mode sources are #{boot_src_ids.inspect}" if (boot_src_ids and boot_src_ids.length > 0)
         redo_sources, enable_srcs = set_boot_sources(boot_mode, boot_sources, true)
         ## Check if we need to enable any NICs as boot sources...
         if (enable_srcs and enable_srcs.length > 0)
@@ -750,7 +755,7 @@ class Crowbar
         end
 
         ## Check if we really need to rearrange boot sources
-        if (redo_sources and redo_sources.length > 0 and !redo_sources.eql?(boot_sources))
+        if (redo_sources and redo_sources.length > 0 and !redo_sources.eql?(boot_src_ids))
           writeBootSourceFile(inputFile, redo_sources)
           xml = command(cmd,url , "-J #{inputFile}")
           if (xml)
