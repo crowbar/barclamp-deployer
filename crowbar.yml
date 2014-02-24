@@ -27,10 +27,6 @@ crowbar:
   order: 10
 
 roles:
-  - name: bmc-nat-client
-    jig: chef-solo
-  - name: bmc-nat-router
-    jig: chef-solo
   - name: deployer-client
     jig: chef-solo
     flags:
