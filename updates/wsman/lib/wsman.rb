@@ -594,7 +594,7 @@ class Crowbar
       boot_source_list = emb_nics.sort if (emb_nics and emb_nics.length > 0)
       boot_source_list = boot_source_list | int_nics.sort        if (int_nics and int_nics.length > 0)
       boot_source_list = boot_source_list | all_other_nics.sort  if (all_other_nics and all_other_nics.length > 0)
-      boot_source_list = boot_source_list | other_boot_srcs.sort if (other_boot_srcs and other_boot_srcs.length > 0)
+      boot_source_list = boot_source_list | other_boot_srcs if (other_boot_srcs and other_boot_srcs.length > 0)
     else
       puts "nicFirst = false. Returning current boot order"
       boot_source_list = boot_source_settings
