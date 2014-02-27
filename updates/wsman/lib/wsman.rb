@@ -301,8 +301,14 @@ class Crowbar
 
   def get_job_selector(instHash)
     puts "Parsing job selector string"
-    selectorStr = instHash["ReferenceParameters"]["ResourceURI"] + "?"
-    selectorSet = instHash["ReferenceParameters"]["SelectorSet"]
+    testFor12G  = instHash["EndpointReference"]
+    if (testFor12G.nil?)
+      selectorStr = instHash["ReferenceParameters"]["ResourceURI"] + "?"
+      selectorSet = instHash["ReferenceParameters"]["SelectorSet"]
+    else
+      selectorStr = instHash["EndpointReference"]["ReferenceParameters"]["ResourceURI"] + "?"
+      selectorSet = instHash["EndpointReference"]["ReferenceParameters"]["SelectorSet"]
+    end
     selectorSet["Selector"].each do |selector|
       selectorStr += selector["Name"] + "=" + selector["content"] unless selector["Name"] == "__cimnamespace"
     end
