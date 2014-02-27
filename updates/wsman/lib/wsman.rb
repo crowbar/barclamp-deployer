@@ -432,7 +432,7 @@ class Crowbar
   ## against all hardware config etc                                    ##
   def create_targeted_config_job(svc_class_uri, fqdd)
     puts "Creating targeted config job..."
-    cmd = "#{INVOKE_CMD} -a CreateTargetedConfigJob -k Target=#{fqdd} -k ScheduledStartTime=TIME_NOW -k RebootJobType=3"
+    cmd = "#{INVOKE_CMD} -a CreateTargetedConfigJob -k Target=#{fqdd} -k ScheduledStartTime=TIME_NOW -k RebootJobType=1"
     output = self.command(cmd, svc_class_uri)
     returnVal = self.returnValue(output,"CreateTargetedConfigJob")
     if returnVal.to_i == RETURN_CFG_JOB
