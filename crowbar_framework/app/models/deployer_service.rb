@@ -20,6 +20,20 @@ class DeployerService < ServiceObject
     @bc_name = "deployer"
   end
 
+  class << self
+    def role_constraints
+      @role_constraints ||= begin
+        {
+          "deployer-client" => {
+            "unique" => false,
+            "count" => -1,
+            "admin" => true
+          }
+        }
+      end
+    end
+  end
+
   def create_proposal
     @logger.debug("Deployer create_proposal: entering")
     base = super
