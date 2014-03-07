@@ -18,13 +18,4 @@
 #
 
 module DeployerBarclampHelper
-  def deployer_role_contraints
-    {
-      "deployer-client" => {
-        "unique" => false,
-        "count" => -1,
-        "admin" => true
-      }
-    }
-  end
 end
