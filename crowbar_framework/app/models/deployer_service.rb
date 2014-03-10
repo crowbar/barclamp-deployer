@@ -22,15 +22,13 @@ class DeployerService < ServiceObject
 
   class << self
     def role_constraints
-      @role_constraints ||= begin
-        {
-          "deployer-client" => {
-            "unique" => false,
-            "count" => -1,
-            "admin" => true
-          }
+      {
+        "deployer-client" => {
+          "unique" => false,
+          "count" => -1,
+          "admin" => true
         }
-      end
+      }
     end
   end
 
