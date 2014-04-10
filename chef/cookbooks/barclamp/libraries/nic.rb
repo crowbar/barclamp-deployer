@@ -336,6 +336,7 @@ class ::Nic
   def usurp(victim)
     self.up
     victim = ::Nic.coerce(victim)
+    victim.refresh
     new_routes = (victim.routes - routes)
     new_addrs = victim.addresses
     return [ [], [] ] if new_routes.empty? && new_addrs.empty?
