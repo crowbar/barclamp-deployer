@@ -1,0 +1,8 @@
+<% if @pydistutils -%>
+[easy_install]
+index_url = http://<%= @proxy_addr %>:<%= @proxy_port %>/files/pip_cache/simple/
+<% end -%>
+<% if @pip_conf -%>
+[global]
+index_url = http://<%= @proxy_addr %>:<%= @proxy_port %>/files/pip_cache/simple/
+<% end -%>

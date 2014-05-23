@@ -86,4 +86,35 @@ if provisioner and states.include?(node[:state])
       mode "0644"
     end
   end
+
+  # Configuring pip package sources
+
+  directory "/root/.pip" do
+    owner "root"
+    group "root"
+    mode 00644
+    action :create
+  end
+
+  template "/root/.pip/pip.conf" do
+    source "pyconf.erb"
+    mode 0644
+    variables(
+      :pip_conf => true,
+      :proxy_addr => provisioner[:fqdn],
+      :proxy_port => provisioner[:provisioner][:web_port]
+    )
+  end
+
+  template "/root/.pydistutils.cfg" do
+    source "pyconf.erb"
+    mode 0644
+    variables(
+      :pydistutils => true,
+      :proxy_addr => provisioner[:fqdn],
+      :proxy_port => provisioner[:provisioner][:web_port]
+    )
+  end
+
+
 end
