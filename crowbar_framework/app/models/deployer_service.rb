@@ -155,9 +155,8 @@ class DeployerService < ServiceObject
       node.crowbar["crowbar"]["usedhcp"] = true
 
       role = RoleObject.find_role_by_name "deployer-config-#{inst}"
-      if role.default_attributes["deployer"]["use_allocate"] and !node.admin?
-        node.allocated = false 
-      else
+      unless role.default_attributes["deployer"]["use_allocate"] and !node.admin?
+        @logger.debug("Automatically allocating node #{node.name}")
         node.allocated = true
       end
 
