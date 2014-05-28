@@ -14,7 +14,10 @@
 # 
 
 class DeployerController < BarclampController
-  def initialize
+
+  protected
+
+  def initialize_service
     @service_object = DeployerService.new logger
   end
 end
