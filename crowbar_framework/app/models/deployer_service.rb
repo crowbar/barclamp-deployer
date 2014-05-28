@@ -157,7 +157,7 @@ class DeployerService < ServiceObject
       role = RoleObject.find_role_by_name "deployer-config-#{inst}"
       unless role.default_attributes["deployer"]["use_allocate"] and !node.admin?
         @logger.debug("Automatically allocating node #{node.name}")
-        node.allocated = true
+        node.allocate!
       end
 
       # save this on the node after it's been refreshed with the network info.
