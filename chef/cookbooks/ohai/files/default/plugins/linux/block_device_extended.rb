@@ -19,6 +19,13 @@ if File.exists?("/sys/block")
         File.open("/sys/block/#{dir}/device/#{check}") { |f| block[dir][check] = f.read_nonblock(1024).strip }
       end
     end
+
+    %w{rotational}.each do |check|
+      if File.exists?("/sys/block/#{dir}/queue/#{check}")
+        File.open("/sys/block/#{dir}/queue/#{check}") { |f| block[dir][check] = f.read_nonblock(1024).strip }
+      end
+    end
+
   end
 
   disk_path = Pathname.new "/dev/disk"
