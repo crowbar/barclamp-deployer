@@ -315,9 +315,20 @@ module BarclampLibrary
         def unique_name
           # SCSI device ids are likely to be more stable than hardware
           # paths to a device, and both are more stable than by-uuid,
-          # which is actually a filesystem attribute.
-          # by-id does not exist on virtio, so we need to fall-back to by-path
-          ["by-id", "by-path"].each do |n|
+          # which is actually a filesystem attribute.  by-id does not
+          # exist on virtio, so we need to fall-back to by-path.
+          # However, by-id seems very unstable under VirtualBox, so in
+          # that case we just rely on by-path.  This means you can't
+          # go reordering disks in VirtualBox, but we can probably
+          # live with that.
+          #
+          # Keep these paths in sync with NodeObject#unique_device_for
+          # within the crowbar barclamp to return always similar values.
+          disk_lookups = ["by-path"]
+          unless @node[:dmi][:system][:product_name] =~ /VirtualBox/i
+            disk_lookups.unshift "by-id"
+          end
+          disk_lookups.each do |n|
             path = File.join("/dev/disk", n)
             next unless File.directory?(path)
             candidates=::Dir.entries(path).sort.select do |m|
