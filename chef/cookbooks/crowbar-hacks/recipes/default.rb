@@ -100,10 +100,10 @@ if node["platform"] != "windows" and File.exists?("/sys/firmware/efi")
       when k =~ /^Boot[0-9a-fA-F]{1,4}/
         desc,device = v.split("\t")
         res = {}
-        res["Description"] = desc.dup.freeze
-        res["Device"] = device.dup.freeze
+        res["Description"] = desc
+        res["Device"] = device
         res["Active"] = (k[-1,1] == '*')
-        bootargs["Entries"][k.match(/^Boot([0-9a-fA-F]+)/)[1].hex] = res.dup.freeze
+        bootargs["Entries"][k.match(/^Boot([0-9a-fA-F]+)/)[1].hex] = res
       else next
       end
     end
