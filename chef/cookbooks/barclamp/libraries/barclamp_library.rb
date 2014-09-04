@@ -315,16 +315,40 @@ module BarclampLibrary
         def unique_name
           # SCSI device ids are likely to be more stable than hardware
           # paths to a device, and both are more stable than by-uuid,
-          # which is actually a filesystem attribute.  by-id does not
-          # exist on virtio, so we need to fall-back to by-path.
-          # However, by-id seems very unstable under VirtualBox, so in
-          # that case we just rely on by-path.  This means you can't
-          # go reordering disks in VirtualBox, but we can probably
-          # live with that.
+          # which is actually a filesystem attribute.
+          #
+          # by-id does not exist on virtio unless a serial no. for the device
+          # is configured.  In that case we fall back to by-path for older
+          # platforms. For newer platforms, where udev no longer maintains
+          # by-path links (e.g. SLES 12) we can't get any name more unique
+          # than "vdX" for virto devices.
+          #
+          # by-id seems very unstable under VirtualBox, so in that case we
+          # just rely on by-path. This means you can't go reordering disks
+          # in VirtualBox, but we can probably live with that.
           #
           # Keep these paths in sync with NodeObject#unique_device_for
           # within the crowbar barclamp to return always similar values.
           disk_lookups = ["by-path"]
+
+          # If this looks like a virtio disk and the target platform is one
+          # that might not have the "by-path" links (e.g. SLES 12). Avoid
+          # using "by-path". We need this check because we might be running
+          # this code in the discovery image, which can be based on a different
+          # platform than the target platform.
+          if File.basename(name) =~ /^vd[a-z]+$/
+            virtio_by_path_platforms = %w(
+              ubuntu-12.04
+              redhat-6.2
+              redhat-6.4
+              centos-6.2
+              centos-6.4
+              suse-11.3
+            )
+            unless virtio_by_path_platforms.include?(@node[:target_platform])
+              disk_lookups = []
+            end
+          end
           unless @node[:dmi][:system][:product_name] =~ /VirtualBox/i
             disk_lookups.unshift "by-id"
           end
