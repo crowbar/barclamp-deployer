@@ -140,7 +140,7 @@ class ::Nic
     end
     res
   end
- 
+
   # Get a list of all IP4 and IP6 addresses bound to a nic.
   def addresses
     @addresses
@@ -714,7 +714,7 @@ class ::Nic
     end
   end
 
-  # Base class for an ovs-bridge. This is just enough to be able to 
+  # Base class for an ovs-bridge. This is just enough to be able to
   # implement the remove_slave call
   class ::Nic::OvsBridge < ::Nic
     def slaves
