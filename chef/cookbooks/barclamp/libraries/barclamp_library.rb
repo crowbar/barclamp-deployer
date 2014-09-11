@@ -400,8 +400,8 @@ module BarclampLibrary
 
           Chef::Log.info("Claiming #{k} for #{new_owner}")
 
-          @node[:crowbar_wall][:claimed_disks][k] ||= {}
-          @node[:crowbar_wall][:claimed_disks][k][:owner] = new_owner
+          @node.set[:crowbar_wall][:claimed_disks][k] ||= {}
+          @node.set[:crowbar_wall][:claimed_disks][k][:owner] = new_owner
           @node.save
 
           true
@@ -416,7 +416,7 @@ module BarclampLibrary
 
           Chef::Log.info("Releasing #{k} from #{old_owner}")
 
-          @node[:crowbar_wall][:claimed_disks][k][:owner] = nil
+          @node.set[:crowbar_wall][:claimed_disks][k][:owner] = nil
           @node.save
 
           true
