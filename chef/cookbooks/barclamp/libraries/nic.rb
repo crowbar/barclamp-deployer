@@ -37,6 +37,11 @@ class ::Nic
     ::Kernel.system("ip #{arg}")
   end
 
+  # Helper for running ethtool commands.
+  def run_ethtool(*args)
+    ::Kernel.system("ethtool", *args)
+  end
+
   # Return an unsorted array of all visible nics on the system.
   # This will skip virtual nics that OVS creates.
   def self.__nics
@@ -204,6 +209,11 @@ class ::Nic
 
   def mtu=(mtu)
     run_ip("link set #{@nic} mtu #{mtu}")
+  end
+
+  # Set tx offloading for an interface
+  def tx_offloading=(on)
+    run_ethtool("-K", @nic, "tx", on ? 'on' : 'off')
   end
 
   def flags
