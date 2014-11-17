@@ -56,11 +56,10 @@ rpms:
     - tcpdump
 gems:
   pkgs:
+    - wsman
     - xml-simple
     - libxml-ruby
     - cstruct
-
-build_cmd: build.sh
 
 #extra_files:
 #  - http://www.tcpdump.org/release/libpcap-1.2.1.tar.gz
