@@ -80,6 +80,9 @@ end
 
 def get_supported_speeds(interface)
   begin
+    # This raise hides segfault on ifreq.unpack. The rescue will ensure we
+    # return the defaults.
+    raise "FIXME"
     ecmd = EthtoolCmd.new
     ecmd.cmd = ETHTOOL_GSET
 
