@@ -16,11 +16,13 @@
 #
 
 barclamp:
-  name: deployer
-  display: Deployer
+  name: 'deployer'
+  display: 'Deployer'
+  description: 'Deployment Management'
   version: 0
+  user_managed: true
   member:
-    - crowbar
+    - 'crowbar'
 
 crowbar:
   layout: 1
@@ -28,41 +30,3 @@ crowbar:
   run_order: 10
   chef_order: 10
   proposal_schema_version: 3
-
-debs:
-  build_pkgs:
-    - build-essential
-    - make
-    - flex
-    - bison
-  pkgs:
-    - tcpdump
-
-rpms:
-  redhat-6.4:
-    build_pkgs:
-      - tar
-  centos-6.4:
-    build_pkgs:
-      - tar
-  build_pkgs:
-    - flex
-    - bison
-    - make
-    - kernel-devel
-    - gcc
-    - glibc-devel
-  pkgs:
-    - tcpdump
-gems:
-  pkgs:
-    - wsman
-    - xml-simple
-    - libxml-ruby
-    - cstruct
-
-#extra_files:
-#  - http://www.tcpdump.org/release/libpcap-1.2.1.tar.gz
-#  - http://www.tcpdump.org/release/tcpdump-4.2.1.tar.gz
-
-#build_cmd: build_tcpdump.sh
