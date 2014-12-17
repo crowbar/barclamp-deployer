@@ -211,6 +211,11 @@ class ::Nic
     run_ip("link set #{@nic} mtu #{mtu}")
   end
 
+  # Set rx offloading for an interface
+  def rx_offloading=(on)
+    run_ethtool("-K", @nic, "rx", on ? 'on' : 'off')
+  end
+
   # Set tx offloading for an interface
   def tx_offloading=(on)
     run_ethtool("-K", @nic, "tx", on ? 'on' : 'off')
