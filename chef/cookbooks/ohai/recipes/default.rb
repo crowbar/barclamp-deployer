@@ -54,6 +54,22 @@ rd = remote_directory node.ohai.plugin_path do
 end
 rd.run_action(:create)
 
+# we need to ensure that the cstruct gem is available (since we use it in our
+# plugin), except on sledgehammer (because it's already installed and we can't
+# install/check packages there)
+states = [ "ready", "readying", "recovering", "applying" ]
+if states.include?(node[:state])
+  package("ruby#{node["languages"]["ruby"]["version"].to_f}-rubygem-cstruct").run_action(:install)
+
+  begin
+    require 'cstruct'
+  rescue LoadError
+    # After installation of the gem, we have a new path for the new gem, so
+    # we need to reset the paths if we can't load cstruct
+    Gem.clear_paths
+  end
+end
+
 o = Ohai::System.new
 o.all_plugins
 node.automatic_attrs.merge! o.data
