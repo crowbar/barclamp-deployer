@@ -227,7 +227,7 @@ networks.each do |network|
   crowbar_ohai[:switch_config][network] = Mash.new unless crowbar_ohai[:switch_config][network]
   crowbar_ohai[:switch_config][network][:interface] = network
   crowbar_ohai[:switch_config][network][:mac] = mac_map[network].downcase
-  #crowbar_ohai[:switch_config][network][:port_link] = get_link_status(network)
+  crowbar_ohai[:switch_config][network][:port_link] = get_link_status(network)
   crowbar_ohai[:switch_config][network][:switch_name] = sw_name
   crowbar_ohai[:switch_config][network][:switch_port] = sw_port
   crowbar_ohai[:switch_config][network][:switch_port_name] = sw_port_name
