@@ -59,7 +59,15 @@ rd.run_action(:create)
 # install/check packages there)
 states = [ "ready", "readying", "recovering", "applying" ]
 if states.include?(node[:state])
-  package("ruby#{node["languages"]["ruby"]["version"].to_f}-rubygem-cstruct").run_action(:install)
+  # During the upgrade process (stoney -> tex, old ruby&rails -> tex
+  # ruby&rails), we need to run the new cookbook with the old ruby&rails once,
+  # so we need to support this
+  if node["languages"]["ruby"]["version"].to_f == 1.8
+    pkg = "rubygem-cstruct"
+  else
+    pkg = "ruby#{node["languages"]["ruby"]["version"].to_f}-rubygem-cstruct"
+  end
+  package(pkg).run_action(:install)
 
   begin
     require 'cstruct'
