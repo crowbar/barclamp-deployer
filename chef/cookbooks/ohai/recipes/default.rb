@@ -58,8 +58,7 @@ unless node[:platform] == "windows"
   # we need to ensure that the cstruct gem is available (since we use it in our
   # plugin), except on sledgehammer (because it's already installed and we can't
   # install/check packages there)
-  states = [ "ready", "readying", "recovering", "applying" ]
-  if states.include?(node[:state])
+  unless CrowbarHelper.in_sledgehammer?(node)
     # During the upgrade process (stoney -> tex, old ruby&rails -> tex
     # ruby&rails), we need to run the new cookbook with the old ruby&rails once,
     # so we need to support this

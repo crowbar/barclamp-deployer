@@ -22,8 +22,7 @@ file "/tmp/.repo_update" do
   action :nothing
 end
 
-states = [ "ready", "readying", "recovering", "applying" ]
-if provisioner and states.include?(node[:state])
+if provisioner and !CrowbarHelper.in_sledgehammer?(node)
   web_port = provisioner["provisioner"]["web_port"]
   address = Chef::Recipe::Barclamp::Inventory.get_network_by_type(provisioner, "admin").address
 
