@@ -54,27 +54,29 @@ rd = remote_directory node.ohai.plugin_path do
 end
 rd.run_action(:create)
 
-# we need to ensure that the cstruct gem is available (since we use it in our
-# plugin), except on sledgehammer (because it's already installed and we can't
-# install/check packages there)
-states = [ "ready", "readying", "recovering", "applying" ]
-if states.include?(node[:state])
-  # During the upgrade process (stoney -> tex, old ruby&rails -> tex
-  # ruby&rails), we need to run the new cookbook with the old ruby&rails once,
-  # so we need to support this
-  if node["languages"]["ruby"]["version"].to_f == 1.8
-    pkg = "rubygem-cstruct"
-  else
-    pkg = "ruby#{node["languages"]["ruby"]["version"].to_f}-rubygem-cstruct"
-  end
-  package(pkg).run_action(:install)
+unless node[:platform] == "windows"
+  # we need to ensure that the cstruct gem is available (since we use it in our
+  # plugin), except on sledgehammer (because it's already installed and we can't
+  # install/check packages there)
+  states = [ "ready", "readying", "recovering", "applying" ]
+  if states.include?(node[:state])
+    # During the upgrade process (stoney -> tex, old ruby&rails -> tex
+    # ruby&rails), we need to run the new cookbook with the old ruby&rails once,
+    # so we need to support this
+    if node["languages"]["ruby"]["version"].to_f == 1.8
+      pkg = "rubygem-cstruct"
+    else
+      pkg = "ruby#{node["languages"]["ruby"]["version"].to_f}-rubygem-cstruct"
+    end
+    package(pkg).run_action(:install)
 
-  begin
-    require 'cstruct'
-  rescue LoadError
-    # After installation of the gem, we have a new path for the new gem, so
-    # we need to reset the paths if we can't load cstruct
-    Gem.clear_paths
+    begin
+      require 'cstruct'
+    rescue LoadError
+      # After installation of the gem, we have a new path for the new gem, so
+      # we need to reset the paths if we can't load cstruct
+      Gem.clear_paths
+    end
   end
 end
 
