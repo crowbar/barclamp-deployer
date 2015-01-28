@@ -5,3 +5,5 @@ description      "Distributes a directory of custom ohai plugins"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          "0.9.0"
 recipe "ohai::default", "Distributes a directory of custom ohai plugins"
+
+depends "utils"
