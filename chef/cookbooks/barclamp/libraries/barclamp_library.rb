@@ -349,7 +349,8 @@ module BarclampLibrary
               disk_lookups = []
             end
           end
-          unless @node[:dmi][:system][:product_name] =~ /VirtualBox/i
+          hardware = @node[:dmi][:system][:product_name] rescue "unknown"
+          unless hardware =~ /VirtualBox/i
             disk_lookups.unshift "by-id"
           end
           disk_lookups.each do |n|
