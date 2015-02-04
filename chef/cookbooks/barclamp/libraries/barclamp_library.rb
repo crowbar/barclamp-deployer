@@ -78,7 +78,8 @@ module BarclampLibrary
       def self.get_bus_order(node)
         bus_order = nil
         node["network"]["interface_map"].each do |data|
-          if node[:dmi][:system][:product_name] =~ /#{data["pattern"]}/
+          hardware = node[:dmi][:system][:product_name] rescue "unknown"
+          if hardware =~ /#{data["pattern"]}/
             if data.has_key?("serial_number")
                 bus_order = data["bus_order"] if node[:dmi][:system][:serial_number].strip == data["serial_number"].strip
             else
