@@ -208,10 +208,10 @@ networks.each do |network|
   if line =~ /: Unit (\d+) Port (\d+)/
     sw_unit, sw_port = $1, $2
   end
-  if line =~ %r!: (\S+ (\d+)/\d+/(\d+))!
-    sw_port_name, foo, bar = $1, $2, $3
-  elsif line =~ %r!: (Gi(\d+)/\d+/(\d+))!
-    sw_port_name, foo, bar = $1, $2, $3
+  if line =~ %r!: (\S+ \d+/\d+/\d+)!
+    sw_port_name = $1
+  elsif line =~ %r!: (Gi\d+/\d+/\d+)!
+    sw_port_name = $1
   else
     sw_port_name = "#{sw_unit}/0/#{sw_port}"
   end
