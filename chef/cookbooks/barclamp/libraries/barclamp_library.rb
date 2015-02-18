@@ -270,6 +270,11 @@ module BarclampLibrary
           File.join("/dev/",@device.gsub(/!/, "/"))
         end
 
+        # is the given path a link to the device name?
+        def link_to_name?(linkname)
+          Pathname.new(File.realpath(linkname)).cleanpath == Pathname.new(self.name).cleanpath
+        end
+
         def model
           @node[:block_device][@device][:model] || "Unknown"
         end
@@ -313,7 +318,24 @@ module BarclampLibrary
           self.name <=> other.name
         end
 
+        # is the current disk already claimed? then use the claimed unique_name
+        def unique_name_already_claimed_by
+          cm = @node[:crowbar_wall][:claimed_disks].find do |claimed_name, v|
+            self.link_to_name?(claimed_name)
+          end || []
+          cm.first
+        end
+
         def unique_name
+          # check first if we have already a claimed disk which points to the same
+          # device node. if so, use that as "unique name"
+          already_claimed_name = self.unique_name_already_claimed_by
+          unless already_claimed_name.nil?
+            Chef::Log.debug("Use #{already_claimed_name} as unique_name " \
+                            "because already claimed")
+            return already_claimed_name
+          end
+
           # SCSI device ids are likely to be more stable than hardware
           # paths to a device, and both are more stable than by-uuid,
           # which is actually a filesystem attribute.
