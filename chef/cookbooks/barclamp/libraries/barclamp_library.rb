@@ -320,7 +320,9 @@ module BarclampLibrary
 
         # is the current disk already claimed? then use the claimed unique_name
         def unique_name_already_claimed_by
-          cm = @node[:crowbar_wall][:claimed_disks].find do |claimed_name, v|
+          @node[:crowbar_wall] ||= Mash.new
+          claimed_disks = @node[:crowbar_wall][:claimed_disks] || []
+          cm = claimed_disks.find do |claimed_name, v|
             self.link_to_name?(claimed_name)
           end || []
           cm.first
