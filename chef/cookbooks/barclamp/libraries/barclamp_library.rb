@@ -390,6 +390,7 @@ module BarclampLibrary
             # Should be matching the code in provisioner/recipes/bootdisk.rb
             unless candidates.empty?
               match = candidates.find{|b|b =~ /^scsi-[a-zA-Z]/} ||
+                candidates.find{|b|b =~ /^scsi-[^1]/} ||
                 candidates.find{|b|b =~ /^scsi-/} ||
                 candidates.find{|b|b =~ /^ata-/} ||
                 candidates.find{|b|b =~ /^cciss-/} ||
