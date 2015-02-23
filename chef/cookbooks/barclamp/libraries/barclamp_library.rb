@@ -323,7 +323,18 @@ module BarclampLibrary
           @node[:crowbar_wall] ||= Mash.new
           claimed_disks = @node[:crowbar_wall][:claimed_disks] || []
           cm = claimed_disks.find do |claimed_name, v|
-            self.link_to_name?(claimed_name)
+            begin
+              self.link_to_name?(claimed_name)
+            rescue Errno::ENOENT
+              # FIXME: Decide what to do with missing links in the long term
+              #
+              # Stoney had a bug that caused disks to be claimed twice for the 
+              # same owner (especially of the "LVM_DRBD" owner) but under two
+              # differnt names. One of those names doesn't persist reboots and
+              # to workaround that bug we just ignore missing links here in the
+              # hope that the same disk is also claimed under a more stable name.
+              false
+            end
           end || []
           cm.first
         end
