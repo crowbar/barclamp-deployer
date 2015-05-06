@@ -56,7 +56,7 @@ class DeployerService < ServiceObject
     if state == "discovering"
       @logger.debug("Deployer transition: leaving #{name} for #{state}: discovering mode")
 
-      db = ProposalObject.find_proposal("deployer", inst)
+      db = Proposal.where(barclamp: "deployer", name: inst).first
       role = RoleObject.find_role_by_name "deployer-config-#{inst}"
       unless add_role_to_instance_and_node("deployer", inst, name, db, role, "deployer-client")
         @logger.debug("Deployer transition: leaving #{name} for #{state}: discovering failed.")
@@ -130,8 +130,8 @@ class DeployerService < ServiceObject
         # If we are the admin node, we may need to add a vlan bmc address.
         # Add the vlan bmc if the bmc network and the admin network are not the same.
         # not great to do it this way, but hey.
-        admin_net = ProposalObject.find_data_bag_item "crowbar/admin_network"
-        bmc_net = ProposalObject.find_data_bag_item "crowbar/bmc_network"
+        admin_net = Chef::DataBag.load "crowbar/admin_network"
+        bmc_net = Chef::DataBag.load "crowbar/bmc_network"
         if admin_net["network"]["subnet"] != bmc_net["network"]["subnet"]
           @logger.debug("Deployer transition: Allocate bmc_vlan address for #{name}")
           result = ns.allocate_ip("default", "bmc_vlan", "host", name)
@@ -141,7 +141,7 @@ class DeployerService < ServiceObject
 
         # Allocate the bastion network ip for the admin node if a bastion
         # network is defined in the network proposal
-        bastion_net = ProposalObject.find_data_bag_item "crowbar/bastion_network"
+        bastion_net = Chef::DataBag.load "crowbar/bastion_network"
         unless bastion_net.nil?
           result = ns.allocate_ip("default", "bastion", range, name)
           if result[0] != 200
