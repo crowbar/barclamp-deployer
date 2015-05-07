@@ -130,8 +130,8 @@ class DeployerService < ServiceObject
         # If we are the admin node, we may need to add a vlan bmc address.
         # Add the vlan bmc if the bmc network and the admin network are not the same.
         # not great to do it this way, but hey.
-        admin_net = Chef::DataBag.load "crowbar/admin_network"
-        bmc_net = Chef::DataBag.load "crowbar/bmc_network"
+        admin_net = Chef::DataBag.load "crowbar/admin_network" rescue nil
+        bmc_net = Chef::DataBag.load "crowbar/bmc_network" rescue nil
         if admin_net["network"]["subnet"] != bmc_net["network"]["subnet"]
           @logger.debug("Deployer transition: Allocate bmc_vlan address for #{name}")
           result = ns.allocate_ip("default", "bmc_vlan", "host", name)
@@ -141,7 +141,7 @@ class DeployerService < ServiceObject
 
         # Allocate the bastion network ip for the admin node if a bastion
         # network is defined in the network proposal
-        bastion_net = Chef::DataBag.load "crowbar/bastion_network"
+        bastion_net = Chef::DataBag.load "crowbar/bastion_network" rescue nil
         unless bastion_net.nil?
           result = ns.allocate_ip("default", "bastion", range, name)
           if result[0] != 200
