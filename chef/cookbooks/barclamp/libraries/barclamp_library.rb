@@ -35,6 +35,7 @@ module BarclampLibrary
               return Network.new(net, data, intf, interface_list)
             end
           end
+          return nil
         end
       end
 
