@@ -28,7 +28,7 @@ module BarclampLibrary
 
       def self.get_network_by_type(node, type)
         unless node[:crowbar][:network].nil?
-          [type, "admin"].each do |usage|
+          [type, "admin"].uniq.each do |usage|
             if found = node[:crowbar][:network].find {|net, data| data[:usage] == usage}
               net, data = found
               intf, interface_list, tm = Barclamp::Inventory.lookup_interface_info(node, data["conduit"])
