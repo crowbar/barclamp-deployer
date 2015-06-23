@@ -18,6 +18,7 @@ require 'socket'
 require 'cstruct'
 require 'etc'
 require 'pathname'
+require 'ohai/log'
 
 provides "crowbar_ohai"
 
@@ -93,8 +94,8 @@ def get_supported_speeds(interface)
     speeds = []
     speeds << "10m" if (rv.supported & ((1<<0)|(1<<1))) != 0
     speeds << "100m" if (rv.supported & ((1<<2)|(1<<3))) != 0
-    speeds << "1g" if (rv.supported & ((1<<4)|(1<<5))) != 0
-    speeds << "10g" if (rv.supported & ((0xf<<17)|(1<<12))) != 0
+    speeds << "1g" if (rv.supported & ((1<<4)|(1<<5)|(1<<17))) != 0
+    speeds << "10g" if (rv.supported & ((0xf<<18)|(1<<12))) != 0
     speeds
   rescue Exception => e
     puts "Failed to get ioctl for speed: #{e.message}"
@@ -154,19 +155,19 @@ Dir.foreach("/sys/class/net") do |entry|
   next if entry =~ /\./
   # We only care about actual physical devices.
   next unless File.exists? "/sys/class/net/#{entry}/device"
-  Chef::Log.debug("examining network interface: " + entry)
+  Ohai::Log.debug("examining network interface: " + entry)
 
   type = File::open("/sys/class/net/#{entry}/type") do |f|
     f.readline.strip
   end rescue "0"
-  Chef::Log.debug("#{entry} is type #{type}")
+  Ohai::Log.debug("#{entry} is type #{type}")
   next unless type == "1"
 
   s1 = File.readlink("/sys/class/net/#{entry}") rescue ""
   spath = File.readlink("/sys/class/net/#{entry}/device") rescue "Unknown"
   spath = s1 if s1 =~ /pci/
   spath = spath.gsub(/.*pci/, "").gsub(/\/net\/.*/, "")
-  Chef::Log.debug("#{entry} spath is #{spath}")
+  Ohai::Log.debug("#{entry} spath is #{spath}")
 
   crowbar_ohai[:detected] = Mash.new unless crowbar_ohai[:detected]
   crowbar_ohai[:detected][:network] = Mash.new unless crowbar_ohai[:detected][:network]
@@ -179,14 +180,14 @@ Dir.foreach("/sys/class/net") do |entry|
   mac_addr = f.gets()
   mac_map[logical_name] = mac_addr.strip
   f.close
-  Chef::Log.debug("MAC is #{mac_addr.strip}")
+  Ohai::Log.debug("MAC is #{mac_addr.strip}")
 
   tcpdump_out = tcpdump_file(logical_name)
-  Chef::Log.debug("tcpdump to: #{tcpdump_out}")
+  Ohai::Log.debug("tcpdump to: #{tcpdump_out}")
 
   if ! File.exists? tcpdump_out
     cmd = "ifconfig #{logical_name} up ; timeout 45 tcpdump -c 1 -lv -v -i #{logical_name} -a -e -s 1514 ether proto 0x88cc > #{tcpdump_out} &"
-    Chef::Log.debug("cmd: #{cmd}")
+    Ohai::Log.debug("cmd: #{cmd}")
     system cmd
     wait=true
   end
@@ -201,7 +202,7 @@ networks.each do |network|
   sw_port_name = nil
 
   line = IO.readlines(tcpdump_out).grep(/Subtype Interface Name/).join ''
-  Chef::Log.debug("subtype intf name line: #{line}")
+  Ohai::Log.debug("subtype intf name line: #{line}")
   if line =~ %r!(\d+)/\d+/(\d+)!
     sw_unit, sw_port = $1, $2
   end
@@ -219,7 +220,7 @@ networks.each do |network|
   sw_name = -1
   # Using mac for now, but should change to something else later.
   line = IO.readlines(tcpdump_out).grep(/Subtype MAC address/).join ''
-  Chef::Log.debug("subtype MAC line: #{line}")
+  Ohai::Log.debug("subtype MAC line: #{line}")
   if line =~ /: (.*) \(oui/
     sw_name = $1
   end
