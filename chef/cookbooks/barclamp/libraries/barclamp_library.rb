@@ -254,8 +254,12 @@ module BarclampLibrary
           node[:block_device].keys.map{|d|Disk.new(node,d)}
         end
 
-        def self.unclaimed(node)
+        def self.unclaimed(node, include_mounted=false)
           all(node).select do |d|
+            unless include_mounted
+              %x{lsblk #{d.name.gsub(/!/, "/")} --noheadings --output MOUNTPOINT | grep -q -v ^$}
+              next if $?.exitstatus == 0
+            end
             d.fixed and not d.claimed?
           end
         end
