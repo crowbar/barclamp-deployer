@@ -729,8 +729,7 @@ class ::Nic
     end
   end
 
-  # Base class for an ovs-bridge. This is just enough to be able to
-  # implement the remove_slave call
+  # Base class for an ovs-bridge.
   class ::Nic::OvsBridge < ::Nic
     def slaves
       ports = []
@@ -743,6 +742,20 @@ class ::Nic
       ports.map{|i| ::Nic.new(i)}
     end
 
+    def add_slave(slave)
+      slave = self.class.coerce(slave)
+      unless ::Nic.exists?(slave)
+        raise ::ArgumentError.new("#{slave} does not exist, cannot add to bridge#{@nic}")
+      end
+      return if self.slaves.member?(slave)
+      if current_master = slave.master()
+        current_master.remove_slave(slave)
+      end
+      slave.up
+      usurp(slave)
+      ::Kernel.system("ovs-vsctl add-port #{@nic} #{slave}")
+    end
+
     def remove_slave(slave)
       slave = self.class.coerce(slave)
       unless self.slaves.member?(slave)
@@ -750,6 +763,41 @@ class ::Nic
       end
       ::Kernel.system("ovs-vsctl del-port #{@nic} #{slave}")
       slave.down
+    end
+
+    def up
+      slaves.each{ |s|s.up }
+      super
+    end
+
+    def destroy
+      slaves.each do |slave|
+        remove_slave(slave)
+      end
+      super
+      ::Kernel.system("ovs-vsctl del-br #{@nic}")
+      nil
+    end
+
+    def self.create(nic, slaves = [])
+      Chef::Log.info("Creating new OVS bridge #{nic}")
+      if self.exists?(nic)
+        raise ::ArgumentError.new("#{nic} already exists.")
+      end
+      ::Kernel.system("ovs-vsctl add-br #{nic}")
+      5.times do
+        if self.exists?(nic) && self.ovs_bridge?(nic)
+          iface = ::Nic.new(nic)
+          slaves.each do |slave|
+            iface.add_slave slave
+          end
+          iface.up
+          return iface
+        end
+        sleep(0.1)
+      end
+
+      raise ::ArgumentError.new("Unable to create new ovs-bridge #{nic}")
     end
   end
 
