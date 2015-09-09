@@ -650,8 +650,8 @@ class ::Nic
       unless ::Nic.exists?(slave)
         raise ::ArgumentError.new("#{slave} does not exist, cannot add to bridge#{@nic}")
       end
-      return if self.slaves.member?(slave)
-      if current_master = slave.master()
+      return if slaves.member?(slave)
+      if current_master = slave.master
         current_master.remove_slave(slave)
       end
       slave.up
@@ -705,7 +705,7 @@ class ::Nic
       nil
     end
 
-    def self.create(nic,slaves=[])
+    def self.create(nic, slaves = [])
       Chef::Log.info("Creating new bridge #{nic}")
       if self.exists?(nic)
         raise ::ArgumentError.new("#{nic} already exists.")
@@ -747,8 +747,8 @@ class ::Nic
       unless ::Nic.exists?(slave)
         raise ::ArgumentError.new("#{slave} does not exist, cannot add to bridge#{@nic}")
       end
-      return if self.slaves.member?(slave)
-      if current_master = slave.master()
+      return if slaves.member?(slave)
+      if current_master = slave.master
         current_master.remove_slave(slave)
       end
       slave.up
@@ -766,7 +766,7 @@ class ::Nic
     end
 
     def up
-      slaves.each{ |s|s.up }
+      slaves.each(&:up)
       super
     end
 
