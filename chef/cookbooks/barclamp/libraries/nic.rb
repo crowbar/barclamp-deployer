@@ -781,6 +781,15 @@ class ::Nic
       nil
     end
 
+    def replug(slave)
+      slave = self.class.coerce(slave)
+      unless self.slaves.member?(slave)
+        raise ::ArgumentError.new("#{slave} is not a member of bridge #{@nic}")
+      end
+      ::Kernel.system("ovs-vsctl del-port #{@nic} #{slave}")
+      ::Kernel.system("ovs-vsctl add-port #{@nic} #{slave}")
+    end
+
     def self.create(nic, slaves = [])
       Chef::Log.info("Creating new OVS bridge #{nic}")
       if self.exists?(nic)
