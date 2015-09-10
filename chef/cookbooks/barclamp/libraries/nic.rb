@@ -374,7 +374,9 @@ class ::Nic
   # Return the bond we are enslaved to, or nil if we are not in a bond.
   def bond_master
     return nil unless File.exists?("#{@nicdir}/master")
-    Nic.new(File.readlink("#{@nicdir}/master").split('/')[-1])
+    master = File.readlink("#{@nicdir}/master").split("/")[-1]
+    return nil unless Nic.bond?(master)
+    Nic.new(master)
   end
 
   # Return the bridge we are enslaved to, or nil if we are not in a bridge.
