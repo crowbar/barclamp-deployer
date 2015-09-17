@@ -648,17 +648,18 @@ class ::Nic
     end
 
     def add_slave(slave)
-      slave = self.class.coerce(slave)
       unless ::Nic.exists?(slave)
         raise ::ArgumentError.new("#{slave} does not exist, cannot add to bridge#{@nic}")
       end
-      return if slaves.member?(slave)
+      slave = self.class.coerce(slave)
+      return slave if slaves.member?(slave)
       if current_master = slave.master
         current_master.remove_slave(slave)
       end
       slave.up
       usurp(slave)
       ::Kernel.system("brctl addif #{@nic} #{slave}")
+      slave
     end
 
     def remove_slave(slave)
@@ -668,6 +669,7 @@ class ::Nic
       end
       ::Kernel.system("brctl delif #{@nic} #{slave}")
       slave.down
+      slave
     end
 
     def stp
@@ -745,17 +747,18 @@ class ::Nic
     end
 
     def add_slave(slave)
-      slave = self.class.coerce(slave)
       unless ::Nic.exists?(slave)
         raise ::ArgumentError.new("#{slave} does not exist, cannot add to bridge#{@nic}")
       end
-      return if slaves.member?(slave)
+      slave = self.class.coerce(slave)
+      return slave if slaves.member?(slave)
       if current_master = slave.master
         current_master.remove_slave(slave)
       end
       slave.up
       usurp(slave)
       ::Kernel.system("ovs-vsctl add-port #{@nic} #{slave}")
+      slave
     end
 
     def remove_slave(slave)
@@ -765,6 +768,7 @@ class ::Nic
       end
       ::Kernel.system("ovs-vsctl del-port #{@nic} #{slave}")
       slave.down
+      slave
     end
 
     def up
