@@ -718,6 +718,8 @@ class ::Nic
         ::Kernel.system("modprobe bridge")
       end
       ::Kernel.system("brctl addbr #{nic}")
+      # It might take a little until the sysfs files for the bridge appear
+      # so let's wait for that
       5.times do
         if self.exists?(nic) && self.bridge?(nic)
           iface = ::Nic.new(nic)
@@ -800,6 +802,8 @@ class ::Nic
         raise ::ArgumentError.new("#{nic} already exists.")
       end
       ::Kernel.system("ovs-vsctl add-br #{nic}")
+      # It might take a little until the sysfs files for the bridge appear
+      # so let's wait for that
       5.times do
         if self.exists?(nic) && self.ovs_bridge?(nic)
           iface = ::Nic.new(nic)
