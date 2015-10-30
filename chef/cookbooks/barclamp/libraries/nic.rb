@@ -374,7 +374,9 @@ class ::Nic
   # Return the bond we are enslaved to, or nil if we are not in a bond.
   def bond_master
     return nil unless File.exists?("#{@nicdir}/master")
-    Nic.new(File.readlink("#{@nicdir}/master").split('/')[-1])
+    master = File.readlink("#{@nicdir}/master").split("/")[-1]
+    return nil unless Nic.bond?(master)
+    Nic.new(master)
   end
 
   # Return the bridge we are enslaved to, or nil if we are not in a bridge.
@@ -646,17 +648,18 @@ class ::Nic
     end
 
     def add_slave(slave)
-      slave = self.class.coerce(slave)
       unless ::Nic.exists?(slave)
         raise ::ArgumentError.new("#{slave} does not exist, cannot add to bridge#{@nic}")
       end
-      return if self.slaves.member?(slave)
-      if current_master = slave.master()
+      slave = self.class.coerce(slave)
+      return slave if slaves.member?(slave)
+      if current_master = slave.master
         current_master.remove_slave(slave)
       end
       slave.up
       usurp(slave)
       ::Kernel.system("brctl addif #{@nic} #{slave}")
+      slave
     end
 
     def remove_slave(slave)
@@ -666,6 +669,7 @@ class ::Nic
       end
       ::Kernel.system("brctl delif #{@nic} #{slave}")
       slave.down
+      slave
     end
 
     def stp
@@ -705,7 +709,7 @@ class ::Nic
       nil
     end
 
-    def self.create(nic,slaves=[])
+    def self.create(nic, slaves = [])
       Chef::Log.info("Creating new bridge #{nic}")
       if self.exists?(nic)
         raise ::ArgumentError.new("#{nic} already exists.")
@@ -714,6 +718,8 @@ class ::Nic
         ::Kernel.system("modprobe bridge")
       end
       ::Kernel.system("brctl addbr #{nic}")
+      # It might take a little until the sysfs files for the bridge appear
+      # so let's wait for that
       5.times do
         if self.exists?(nic) && self.bridge?(nic)
           iface = ::Nic.new(nic)
@@ -729,8 +735,7 @@ class ::Nic
     end
   end
 
-  # Base class for an ovs-bridge. This is just enough to be able to
-  # implement the remove_slave call
+  # Base class for an ovs-bridge.
   class ::Nic::OvsBridge < ::Nic
     def slaves
       ports = []
@@ -743,6 +748,21 @@ class ::Nic
       ports.map{|i| ::Nic.new(i)}
     end
 
+    def add_slave(slave)
+      unless ::Nic.exists?(slave)
+        raise ::ArgumentError.new("#{slave} does not exist, cannot add to bridge#{@nic}")
+      end
+      slave = self.class.coerce(slave)
+      return slave if slaves.member?(slave)
+      if current_master = slave.master
+        current_master.remove_slave(slave)
+      end
+      slave.up
+      usurp(slave)
+      ::Kernel.system("ovs-vsctl add-port #{@nic} #{slave}")
+      slave
+    end
+
     def remove_slave(slave)
       slave = self.class.coerce(slave)
       unless self.slaves.member?(slave)
@@ -750,6 +770,53 @@ class ::Nic
       end
       ::Kernel.system("ovs-vsctl del-port #{@nic} #{slave}")
       slave.down
+      slave
+    end
+
+    def up
+      slaves.each(&:up)
+      super
+    end
+
+    def destroy
+      slaves.each do |slave|
+        remove_slave(slave)
+      end
+      super
+      ::Kernel.system("ovs-vsctl del-br #{@nic}")
+      nil
+    end
+
+    def replug(slave)
+      slave = self.class.coerce(slave)
+      unless self.slaves.member?(slave)
+        raise ::ArgumentError.new("#{slave} is not a member of bridge #{@nic}")
+      end
+      ::Kernel.system("ovs-vsctl del-port #{@nic} #{slave}")
+      ::Kernel.system("ovs-vsctl add-port #{@nic} #{slave}")
+    end
+
+    def self.create(nic, slaves = [])
+      Chef::Log.info("Creating new OVS bridge #{nic}")
+      if self.exists?(nic)
+        raise ::ArgumentError.new("#{nic} already exists.")
+      end
+      ::Kernel.system("ovs-vsctl add-br #{nic}")
+      # It might take a little until the sysfs files for the bridge appear
+      # so let's wait for that
+      5.times do
+        if self.exists?(nic) && self.ovs_bridge?(nic)
+          iface = ::Nic.new(nic)
+          slaves.each do |slave|
+            iface.add_slave slave
+          end
+          iface.up
+          return iface
+        end
+        sleep(0.1)
+      end
+
+      raise ::ArgumentError.new("Unable to create new ovs-bridge #{nic}")
     end
   end
 
