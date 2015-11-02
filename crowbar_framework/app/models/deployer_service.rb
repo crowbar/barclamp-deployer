@@ -113,6 +113,28 @@ class DeployerService < ServiceObject
 
       node.save if save_it
 
+      role = RoleObject.find_role_by_name "deployer-config-#{inst}"
+      unless role.default_attributes["deployer"]["use_allocate"] and !node.admin?
+        @logger.debug("Automatically allocating node #{node.name}")
+        node.allocate!
+      end
+
+      @logger.debug("Deployer transition: leaving discovered for #{name} EOF")
+      return [200, { :name => name } ]
+    end
+
+    #
+    # Once we have been allocated, we will fly through here and we will setup the raid/bios info
+    #
+    if state == "hardware-installing"
+      # build a list of current and pending roles to check against
+      roles = []
+      node.crowbar["crowbar"]["pending"].each do |k,v|
+        roles << v
+      end unless node.crowbar["crowbar"]["pending"].nil?
+      roles << node.run_list_to_roles
+      roles.flatten!
+
       # Allocate required addresses
       range = node.admin? ? "admin" : "host"
       @logger.debug("Deployer transition: Allocate admin address for #{name}")
@@ -154,33 +176,12 @@ class DeployerService < ServiceObject
 
       # Let it fly to the provisioner. Reload to get the address.
       node = NodeObject.find_node_by_name node.name
-      node.crowbar["crowbar"]["usedhcp"] = true
-
-      role = RoleObject.find_role_by_name "deployer-config-#{inst}"
-      unless role.default_attributes["deployer"]["use_allocate"] and !node.admin?
-        @logger.debug("Automatically allocating node #{node.name}")
-        node.allocate!
-      end
 
       # save this on the node after it's been refreshed with the network info.
-      node.crowbar["crowbar"]["boot_ip_hex"] = boot_ip_hex  if boot_ip_hex
-      node.save
-
-      @logger.debug("Deployer transition: leaving discovered for #{name} EOF")
-      return [200, { :name => name } ]
-    end
-
-    #
-    # Once we have been allocated, we will fly through here and we will setup the raid/bios info
-    #
-    if state == "hardware-installing"
-      # build a list of current and pending roles to check against
-      roles = []
-      node.crowbar["crowbar"]["pending"].each do |k,v|
-        roles << v
-      end unless node.crowbar["crowbar"]["pending"].nil?
-      roles << node.run_list_to_roles
-      roles.flatten!
+      if boot_ip_hex
+        node.crowbar["crowbar"]["boot_ip_hex"] = boot_ip_hex
+        save_it = true
+      end
 
       # Walk map to categorize the node.  Choose first one from the bios map that matches.
       role = RoleObject.find_role_by_name "deployer-config-#{inst}"
