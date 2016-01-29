@@ -91,7 +91,7 @@ if node["uefi"]
 
   if neworder != node["uefi"]["boot"]["order"]
     Chef::Log.info("Change UEFI Boot Order: #{node[:provisioner_state]} #{node["uefi"]["boot"]["order"].inspect} => #{neworder.inspect}")
-    ::Kernel.system("efibootmgr -o #{neworder.map{ |e| sprintf("%x", order) }.join(",")}")
+    ::Kernel.system("efibootmgr -o #{neworder.map{ |e| sprintf("%x", e) }.join(",")}")
 
     node["uefi"]["boot"]["order_old"] = node["uefi"]["boot"]["order"]
     node["uefi"]["boot"]["order"] = neworder
